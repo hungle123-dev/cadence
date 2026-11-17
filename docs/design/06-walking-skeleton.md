@@ -71,8 +71,8 @@ Làm theo thứ tự. Cột "Trạng thái" cập nhật khi review xong.
 
 | # | Nhiệm vụ | Xong khi | Liên quan | Trạng thái |
 |---|---|---|---|---|
-| S1 | Khởi tạo Git + repo GitHub | Repo có `.gitignore`, README ngắn, `docs/` và `prototype/` đã commit | — | ⚪ |
-| S2 | Tạo project backend | `./mvnw verify` chạy được; có đủ 8 package module + `common`, mỗi module có `domain/application/infrastructure` | ADR-0001, template mục 3 | ⚪ |
+| S1 | Khởi tạo Git + repo GitHub | Repo có `.gitignore`, README ngắn, `docs/` và `prototype/` đã commit | — | ✅ |
+| S2 | Tạo project backend | `./mvnw verify` chạy được; có đủ 8 package module + `common`, mỗi module có `domain/application/infrastructure` | ADR-0001, template mục 3 | ✅ |
 | S3 | Viết bộ test kiến trúc **trước** code nghiệp vụ | Test R1–R10 + luật module + luật JPA + luật schema chạy xanh; tạo một vi phạm cố ý thì đỏ | ADR-0001, 0011, 0014, 0015 | ⚪ |
 | S4 | PostgreSQL local + Flyway | Migration tạo schema `catalog`, bảng `categories`; seed vài dòng chỉ ở profile local; ứng dụng kết nối bằng `cadence_app` | 5.1, 5.5, 5.10, ADR-0014 | ⚪ |
 | S5 | Lát mỏng qua hexagon: liệt kê category | `GET /api/catalog/categories` trả JSON; có test domain, test use case, test tích hợp Testcontainers | Template mục 6, ADR-0011 | ⚪ |

@@ -1,0 +1,8 @@
+spring:
+  application:
+    name: cadence
+
+server:
+  servlet:
+    # Mọi API (kể cả actuator) nằm dưới /api, khớp với Caddy chuyển /api/* vào backend (ADR-0006)
+    context-path: /api
