@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cadence — Giày & đồ thể thao chính hãng | Giữ nhịp, đi xa hơn</title>
+  <meta name="description" content="Cadence: giày chạy bộ, bóng đá, đồ tập và lifestyle cho người Việt. Miễn phí giao hàng từ 1.500.000 ₫, đổi size trong 30 ngày, thanh toán COD hoặc VNPay.">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://images.unsplash.com">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,800&family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/tokens.css?v=20261117-10">
+  <link rel="stylesheet" href="assets/css/styles.css?v=20261117-10">
+</head>
+<body>
+<script src="assets/js/sprite.js?v=20261117-10"></script>
+<script src="assets/js/layout.js?v=20261117-10" data-part="header"></script>
+
+<main id="main">
+
+  <!-- Chiến dịch: ảnh tràn viền, chữ đặt BÊN DƯỚI ảnh để luôn đọc rõ -->
+  <section class="campaign" aria-labelledby="hero-title">
+    <a class="campaign__media" href="pdp.html?p=tempo-2" tabindex="-1" aria-hidden="true">
+      <img src="https://images.unsplash.com/photo-1758506971986-b0d0edebd8d5?auto=format&fit=crop&q=75&w=1600"
+           srcset="https://images.unsplash.com/photo-1758506971986-b0d0edebd8d5?auto=format&fit=crop&q=75&w=750 750w, https://images.unsplash.com/photo-1758506971986-b0d0edebd8d5?auto=format&fit=crop&q=75&w=1200 1200w, https://images.unsplash.com/photo-1758506971986-b0d0edebd8d5?auto=format&fit=crop&q=75&w=1600 1600w, https://images.unsplash.com/photo-1758506971986-b0d0edebd8d5?auto=format&fit=crop&q=75&w=2400 2400w"
+           sizes="100vw" alt="Người chạy bộ băng qua phố lúc sáng sớm" fetchpriority="high">
+    </a>
+    <div class="container campaign__text">
+      <h1 class="display" id="hero-title">Giữ nhịp, đi xa hơn</h1>
+      <p class="campaign__sub">Cadence Tempo 2 mới: nhẹ 228 g, êm đến km cuối trên đường nhựa nóng ẩm.</p>
+      <div class="campaign__actions">
+        <a class="btn" href="pdp.html?p=tempo-2">Mua Tempo 2</a>
+        <a class="btn btn--outline" href="plp.html?cat=giay-chay-bo">Giày chạy bộ</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Hai ô nổi bật -->
+  <section class="section" aria-labelledby="feat-title">
+    <div class="container">
+      <h2 class="section__title" id="feat-title">Nổi bật</h2>
+      <div class="tiles tiles--2">
+        <a class="tile" href="plp.html?s=trail">
+          <img src="https://images.unsplash.com/photo-1594882645126-14020914d58d?auto=format&fit=crop&q=70&w=1200" alt="" loading="lazy" width="1200" height="1200">
+          <div class="tile__text"><h3 class="tile__title">Bám chắc trên dốc đất đỏ</h3><p class="tile__sub">Mudline Trail</p><span class="btn btn--light btn--sm">Mua đồ trail</span></div>
+        </a>
+        <a class="tile" href="plp.html?s=tap-luyen">
+          <img src="https://images.unsplash.com/photo-1599058917212-d750089bc07e?auto=format&fit=crop&q=70&w=1200" alt="" loading="lazy" width="1200" height="1200">
+          <div class="tile__text"><h3 class="tile__title">Buổi tập không cần lý do</h3><p class="tile__sub">Giày tập, áo thoát ẩm và phụ kiện</p><span class="btn btn--light btn--sm">Mua đồ tập</span></div>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Đang được mua nhiều -->
+  <section class="section section--tight" aria-labelledby="trend-title">
+    <div class="container section__head">
+      <h2 class="section__title" id="trend-title">Đang được mua nhiều</h2>
+      <div class="rail-ctrl" data-rail-for="rail-trend">
+        <a class="link" href="plp.html">Xem tất cả</a>
+        <button class="rail-btn" type="button" data-rail="-1" aria-label="Cuộn về trước"><svg class="icon icon--sm" style="transform:scaleX(-1)"><use href="#i-chev-r"/></svg></button>
+        <button class="rail-btn" type="button" data-rail="1" aria-label="Cuộn tiếp"><svg class="icon icon--sm"><use href="#i-chev-r"/></svg></button>
+      </div>
+    </div>
+    <div class="rail" id="rail-trend" data-grid data-limit="12" data-sort="rank" tabindex="0" role="region" aria-label="Sản phẩm đang được mua nhiều, cuộn ngang"></div>
+  </section>
+
+  <!-- Mua theo môn -->
+  <section class="section" aria-labelledby="sport-title">
+    <div class="container section__head">
+      <h2 class="section__title" id="sport-title">Mua theo môn</h2>
+      <div class="rail-ctrl" data-rail-for="rail-sport">
+        <button class="rail-btn" type="button" data-rail="-1" aria-label="Cuộn về trước"><svg class="icon icon--sm" style="transform:scaleX(-1)"><use href="#i-chev-r"/></svg></button>
+        <button class="rail-btn" type="button" data-rail="1" aria-label="Cuộn tiếp"><svg class="icon icon--sm"><use href="#i-chev-r"/></svg></button>
+      </div>
+    </div>
+    <div class="rail rail--tiles" id="rail-sport" tabindex="0" role="region" aria-label="Danh mục theo môn, cuộn ngang">
+      <a class="sport" href="plp.html?s=chay-bo"><div class="sport__img"><img src="https://images.unsplash.com/photo-1502904550040-7534597429ae?auto=format&fit=crop&q=70&w=800" alt="" loading="lazy" width="800" height="1000"></div><span class="sport__name">Chạy bộ</span></a>
+      <a class="sport" href="plp.html?s=trail"><div class="sport__img"><img src="https://images.unsplash.com/photo-1792955104796-31d15ec8c28f?auto=format&fit=crop&q=70&w=800" alt="" loading="lazy" width="800" height="1000"></div><span class="sport__name">Chạy địa hình</span></a>
+      <a class="sport" href="plp.html?s=tap-luyen"><div class="sport__img"><img src="https://images.unsplash.com/photo-1758875570600-8daf8d2f05f3?auto=format&fit=crop&q=70&w=800" alt="" loading="lazy" width="800" height="1000"></div><span class="sport__name">Tập luyện</span></a>
+      <a class="sport" href="plp.html?g=tre-em"><div class="sport__img"><img src="https://images.unsplash.com/photo-1777489689168-497290f235d5?auto=format&fit=crop&q=70&w=800" alt="" loading="lazy" width="800" height="1000"></div><span class="sport__name">Trẻ em</span></a>
+      <a class="sport" href="plp.html?s=lifestyle"><div class="sport__img"><img src="https://images.unsplash.com/photo-1645557194575-4086233e70ff?auto=format&fit=crop&q=70&w=800" alt="" loading="lazy" width="800" height="1000"></div><span class="sport__name">Mặc hằng ngày</span></a>
+    </div>
+  </section>
+
+  <!-- Câu chuyện: cùng mẫu với chiến dịch (ảnh rộng, chữ bên dưới) -->
+  <section class="campaign campaign--story" aria-labelledby="story-title">
+    <a class="campaign__media" href="#" tabindex="-1" aria-hidden="true">
+      <img src="https://images.unsplash.com/photo-1530143311094-34d807799e8f?auto=format&fit=crop&q=75&w=1600" alt="" loading="lazy">
+    </a>
+    <div class="container campaign__text">
+      <h2 class="h1" id="story-title">Chạy trên những sống núi</h2>
+      <p class="campaign__sub">Ba người chạy nghiệp dư, triền cỏ cháy nắng và biển mây dưới chân: chúng tôi thử Mudline Trail ở nơi nó được thiết kế để đến.</p>
+      <div class="campaign__actions">
+        <a class="btn" href="#">Đọc câu chuyện</a>
+        <a class="btn btn--outline" href="plp.html?s=trail">Mua đồ trail</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Hàng mới về -->
+  <section class="section" aria-labelledby="new-title">
+    <div class="container">
+      <div class="section__head">
+        <h2 class="section__title" id="new-title">Hàng mới về</h2>
+        <a class="link" href="plp.html?sort=new">Xem tất cả</a>
+      </div>
+      <div class="tabs" role="tablist" aria-label="Lọc hàng mới về">
+        <button type="button" role="tab" data-tab="all" aria-selected="true">Tất cả</button>
+        <button type="button" role="tab" data-tab="shoes" aria-selected="false">Giày</button>
+        <button type="button" role="tab" data-tab="apparel" aria-selected="false">Quần áo</button>
+        <button type="button" role="tab" data-tab="accessories" aria-selected="false">Phụ kiện</button>
+      </div>
+      <div class="grid grid--4" data-grid data-limit="8" data-sort="new"></div>
+    </div>
+  </section>
+
+  <!-- Ra mắt giới hạn -->
+  <section class="launch on-dark" id="launch" aria-labelledby="launch-title">
+    <div class="container launch__inner">
+      <div class="launch__media"><img src="https://images.unsplash.com/photo-1568363541766-ec619ecfa0ad?auto=format&fit=crop&q=70&w=1400" alt="Đôi giày chạy tốc độ trên mặt đường nhựa" loading="lazy" width="1400" height="1050"></div>
+      <div class="launch__text">
+        <h2 class="h1" id="launch-title">Velocity Racer, Saigon Edition</h2>
+        <p class="launch__note">Ra mắt giới hạn bằng bốc thăm, dành cho hội viên Cadence Club.</p>
+        <p class="countdown" aria-live="off"><span class="sr-only">Mở đăng ký sau </span><span id="countdown">00 ngày 00:00:00</span></p>
+        <dl class="launch__meta">
+          <div><dt>Đăng ký</dt><dd>20.12 · 10:00–22:00</dd></div>
+          <div><dt>Giới hạn</dt><dd>1 lượt mỗi tài khoản</dd></div>
+        </dl>
+        <div><button class="btn btn--light" type="button" id="remind-btn">Nhắc tôi khi mở đăng ký</button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Cadence Club -->
+  <section class="section" aria-labelledby="club-title">
+    <div class="container club">
+      <h2 class="h1" id="club-title">Cadence Club</h2>
+      <p class="club__sub">Hội viên miễn phí. Giao hàng miễn phí mọi đơn, bốc thăm hàng giới hạn, chạy nhóm cuối tuần và quà sinh nhật.</p>
+      <div class="campaign__actions">
+        <a class="btn" href="account.html?tab=register">Tham gia miễn phí</a>
+        <a class="btn btn--outline" href="account.html">Đăng nhập</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Dịch vụ -->
+  <section class="service-wrap" aria-label="Dịch vụ">
+    <div class="container service">
+      <div class="service__item"><svg class="icon" aria-hidden="true"><use href="#i-truck"/></svg><div><strong>Giao hàng miễn phí</strong><span>Đơn từ 1.500.000 ₫. Nội thành 1–2 ngày.</span></div></div>
+      <div class="service__item"><svg class="icon" aria-hidden="true"><use href="#i-return"/></svg><div><strong>Đổi size 30 ngày</strong><span>Size mới được giữ ngay khi bạn gửi yêu cầu.</span></div></div>
+      <div class="service__item"><svg class="icon" aria-hidden="true"><use href="#i-box"/></svg><div><strong>COD hoặc VNPay</strong><span>Trả khi nhận hàng, hoặc quét QR ngân hàng.</span></div></div>
+      <div class="service__item"><svg class="icon" aria-hidden="true"><use href="#i-help"/></svg><div><strong>Tư vấn chọn size</strong><span>Chat với chúng tôi 8:00–22:00 mỗi ngày.</span></div></div>
+    </div>
+  </section>
+</main>
+
+<script>CAD.layout('footer')</script>
+
+<script src="assets/js/data.js?v=20261117-10"></script>
+<script src="assets/js/app.js?v=20261117-10"></script>
+<script>
+  /* Dải cuộn ngang: nút trước/sau cuộn gần hai thẻ, tự khoá khi ở đầu/cuối */
+  document.querySelectorAll('[data-rail-for]').forEach(function (ctrl) {
+    var rail = document.getElementById(ctrl.getAttribute('data-rail-for'));
+    var btns = ctrl.querySelectorAll('[data-rail]');
+    if (!rail || !btns.length) return;
+    var smooth = !matchMedia('(prefers-reduced-motion: reduce)').matches;
+    function sync() {
+      btns[0].disabled = rail.scrollLeft < 4;
+      btns[1].disabled = rail.scrollLeft + rail.clientWidth >= rail.scrollWidth - 4;
+    }
+    btns.forEach(function (b) {
+      b.addEventListener('click', function () {
+        var step = (rail.firstElementChild ? rail.firstElementChild.offsetWidth : 300) * 2;
+        rail.scrollBy({ left: step * +b.getAttribute('data-rail'), behavior: smooth ? 'smooth' : 'auto' });
+      });
+    });
+    rail.addEventListener('scroll', sync, { passive: true });
+    new MutationObserver(sync).observe(rail, { childList: true });
+    window.addEventListener('resize', sync);
+    sync();
+  });
+
+  /* Trang chủ: đồng hồ đếm ngược ra mắt + nút nhắc */
+  (function () {
+    var target = new Date('2026-12-20T10:00:00+07:00').getTime();
+    var el = document.getElementById('countdown');
+    function pad(n) { return (n < 10 ? '0' : '') + n; }
+    function tick() {
+      var s = Math.max(0, Math.floor((target - Date.now()) / 1000));
+      el.textContent = pad(Math.floor(s / 86400)) + ' ngày ' + pad(Math.floor(s % 86400 / 3600)) + ':' + pad(Math.floor(s % 3600 / 60)) + ':' + pad(s % 60);
+    }
+    tick(); setInterval(tick, 1000);
+    document.getElementById('remind-btn').addEventListener('click', function () {
+      CAD.toast('Đã bật nhắc. Chúng tôi sẽ gửi email khi mở đăng ký.');
+    });
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Java / Maven
+target/
+
+# Next.js
+node_modules/
+.next/
+next-env.d.ts
+
+# Logs
+*.log
+
+# IDE / OS
+.idea/
+*.iml
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Local tools
+.claude/
+.impeccable/
+
+DESIGN.md
+PRODUCT.md

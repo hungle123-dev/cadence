@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Thanh toán | Cadence</title>
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#111111">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://images.unsplash.com">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,800&family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/tokens.css?v=20261117-10">
+  <link rel="stylesheet" href="assets/css/styles.css?v=20261117-10">
+  <link rel="stylesheet" href="assets/css/commerce.css?v=20261117-10">
+</head>
+<body>
+<script src="assets/js/sprite.js?v=20261117-10"></script>
+<a class="skip-link" href="#main">Bỏ qua tới nội dung chính</a>
+
+<!-- Checkout dùng header tối giản: bỏ menu để khách không bị phân tâm -->
+<header class="checkout-header">
+  <div class="container checkout-header__inner">
+    <a class="wordmark" href="index.html" aria-label="Cadence, về trang chủ">Cadence</a>
+    <span class="checkout-header__secure"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10.5" width="14" height="9.5" rx="2"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></svg><span>Thanh toán bảo mật</span></span>
+    <a class="icon-btn" href="cart.html" aria-label="Quay lại giỏ hàng"><svg class="icon" aria-hidden="true"><use href="#i-bag"/></svg></a>
+  </div>
+</header>
+
+<div class="demo-bar" role="note">
+  <div class="container demo-bar__inner">
+    <strong>Prototype</strong><span class="muted">Mô phỏng phản hồi khi bấm Đặt hàng:</span>
+    <a href="checkout.html" data-demo="">Thành công</a>
+    <a href="checkout.html?demo=price-changed" data-demo="price-changed">Giá đã thay đổi</a>
+    <a href="checkout.html?demo=out-of-stock" data-demo="out-of-stock">Hết hàng lúc đặt</a>
+  </div>
+</div>
+
+<main id="main" class="container co-wrap">
+  <ol class="steps" aria-label="Các bước đặt hàng">
+    <li class="is-done"><a href="cart.html"><span class="steps__n" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m5.5 12.5 4 4 9-9"/></svg></span><span class="steps__t">Giỏ hàng</span></a></li>
+    <li class="is-current" aria-current="step"><span class="steps__n" aria-hidden="true">2</span><span class="steps__t">Thông tin &amp; thanh toán</span></li>
+    <li><span class="steps__n" aria-hidden="true">3</span><span class="steps__t">Hoàn tất</span></li>
+  </ol>
+  <div id="co-root"></div>
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="assets/js/data.js?v=20261117-10"></script>
+<script src="assets/js/commerce.js?v=20261117-10"></script>
+<script src="assets/js/app.js?v=20261117-10"></script>
+<script src="assets/js/checkout.js?v=20261117-10"></script>
+</body>
+</html>

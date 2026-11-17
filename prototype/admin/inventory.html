@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tồn kho | Cadence Admin</title>
+  <meta name="robots" content="noindex">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,800&family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/tokens.css?v=20261117-10">
+  <link rel="stylesheet" href="../assets/css/styles.css?v=20261117-10">
+  <link rel="stylesheet" href="../assets/css/commerce.css?v=20261117-10">
+  <link rel="stylesheet" href="admin.css?v=20261117-10">
+</head>
+<body class="admin">
+<script src="../assets/js/sprite.js?v=20261117-10"></script>
+<script src="../assets/js/data.js?v=20261117-10"></script>
+<script src="../assets/js/app.js?v=20261117-10"></script>
+<script src="admin.js?v=20261117-10"></script>
+<script>
+(function () {
+  var main = ADM.shell('inventory');
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  var q = new URLSearchParams(location.search);
+  var state = { q: q.get('q') || '', filter: q.get('filter') || '', selected: null };
+  var TYPE = { RECEIVE: 'Nhập kho', SHIP: 'Xuất kho', ADJUST: 'Điều chỉnh', RETURN_RESTOCK: 'Hàng hoàn nhập lại' };
+
+  main.innerHTML =
+    '<div class="page-head"><div><h1 class="h1">Tồn kho</h1><p>Còn bán = Tồn thực tế − Đang giữ cho đơn − Tồn an toàn. Mọi thay đổi đều ghi vào sổ biến động.</p></div></div>' +
+    '<div class="grid-inv">' +
+      '<section class="card card--flush" aria-label="Danh sách SKU">' +
+        '<div class="filters-row">' +
+          '<label class="field adm-search grow"><span class="sr-only">Tìm SKU</span><svg class="icon icon--sm" aria-hidden="true"><use href="#i-search"/></svg><input class="input" id="q" type="search" placeholder="Mã SKU hoặc tên sản phẩm" value="' + ADM.esc(state.q) + '"></label>' +
+          '<div class="seg" role="group" aria-label="Lọc tồn kho">' +
+            [['', 'Tất cả'], ['low', 'Sắp hết (≤ 2)'], ['out', 'Hết hàng']].map(function (f) { return '<button type="button" data-filter="' + f[0] + '" aria-pressed="' + (state.filter === f[0]) + '">' + f[1] + '</button>'; }).join('') + '</div>' +
+          '<span class="count" id="count" aria-live="polite"></span></div>' +
+        '<div class="table-wrap table-wrap--tall"><table class="table table--list table--inv"><thead><tr>' +
+          '<th class="col-sticky col-edge">SKU</th><th>Sản phẩm</th><th class="num">Tồn thực tế</th><th class="num">Đang giữ</th><th class="num">An toàn</th><th class="num">Còn bán</th>' +
+          '<th class="col-end"><span class="sr-only">Thao tác</span></th></tr></thead><tbody id="rows"></tbody></table></div>' +
+      '</section>' +
+      '<section class="card card--ledger" id="ledger" aria-live="polite"></section>' +
+    '</div>';
+
+  function rows() {
+    var s = CAD.norm(state.q);
+    return ADM.stockRows().filter(function (r) {
+      if (state.filter === 'low' && !(r.ats > 0 && r.ats <= 2)) return false;
+      if (state.filter === 'out' && r.ats > 0) return false;
+      return !s || CAD.norm(r.sku + ' ' + r.p.name).indexOf(s) > -1;
+    });
+  }
+  function atsBadge(ats) { return ats <= 0 ? '<span class="pill pill--bad">Hết</span>' : ats <= 2 ? '<span class="pill pill--warn">Sắp hết</span>' : ''; }
+  function render() {
+    var list = rows();
+    $('#count').textContent = list.length + ' SKU';
+    $('#rows').innerHTML = list.map(function (r) {
+      var cls = r.ats <= 0 ? 'is-low' : r.ats <= 2 ? 'is-warn' : '';
+      return '<tr class="is-link ' + cls + (state.selected === r.key ? ' is-sel' : '') + '" data-key="' + r.key + '">' +
+        '<td class="mono col-primary col-sticky col-edge"><button class="link-btn" type="button" data-view="' + r.key + '">' + r.sku + '</button></td>' +
+        '<td class="col-prod">' + ADM.esc(r.p.name) + '<span class="sub">Size ' + r.size + ' · ' + r.location + '</span></td>' +
+        '<td class="num" data-label="Tồn">' + r.onHand + '</td><td class="num" data-label="Giữ">' + r.reserved + '</td><td class="num" data-label="An toàn">' + r.safety + '</td>' +
+        '<td class="num ats" data-label="Còn bán"><span class="ats-cell">' + atsBadge(r.ats) + '<span>' + r.ats + '</span></span></td>' +
+        '<td class="col-end"><button class="btn btn--outline btn--sm" type="button" data-adjust="' + r.key + '" aria-label="Nhập hoặc điều chỉnh ' + r.sku + '">Nhập / điều chỉnh</button></td></tr>';
+    }).join('') || '<tr><td colspan="7" class="table-empty">Không có SKU nào khớp. <button class="link" type="button" data-clear>Xoá bộ lọc</button></td></tr>';
+    renderLedger();
+    var p = new URLSearchParams(); if (state.q) p.set('q', state.q); if (state.filter) p.set('filter', state.filter);
+    history.replaceState(null, '', 'inventory.html' + (p.toString() ? '?' + p : ''));
+  }
+  function entryHtml(e, showSku) {
+    var sign = e.type === 'SHIP' ? '−' : (e.qty < 0 ? '−' : '+');
+    return '<li><div><div><strong class="mono">' + sign + Math.abs(e.qty) + '</strong> · ' + TYPE[e.type] + (showSku ? ' · <span class="mono">' + ADM.skuCode.apply(null, e.sku.split('|')) + '</span>' : '') + '</div>' +
+      '<div class="reason">' + ADM.esc(e.reason) + '</div><div class="who">' + ADM.when(e.at) + ' · ' + ADM.esc(e.by) + '</div></div></li>';
+  }
+  function renderLedger() {
+    var l = ADM.ledger().slice().reverse();
+    var title = 'Sổ biến động gần đây', sub = 'Toàn bộ kho';
+    if (state.selected) {
+      var r = ADM.stockRows().filter(function (x) { return x.key === state.selected; })[0];
+      l = l.filter(function (e) { return e.sku === state.selected; });
+      title = r.sku; sub = r.p.name + ' · size ' + r.size + ' · đang giữ ' + r.reserved + ' cho đơn chưa xuất kho';
+    }
+    $('#ledger').innerHTML = '<div class="card__head"><div><h2 class="h3">' + title + '</h2><p>' + ADM.esc(sub) + '</p></div>' +
+      (state.selected ? '<button class="link" type="button" data-view="">Xem tất cả</button>' : '') + '</div>' +
+      '<ol class="audit">' + l.slice(0, 14).map(function (e) { return entryHtml(e, !state.selected); }).join('') + '</ol>';
+  }
+  /* Chọn dòng mà không vẽ lại bảng (giữ phần tử đang focus để dialog trả focus về đúng chỗ) */
+  function select(key) {
+    state.selected = key;
+    document.querySelectorAll('#rows tr[data-key]').forEach(function (tr) { tr.classList.toggle('is-sel', tr.getAttribute('data-key') === key); });
+    renderLedger();
+  }
+
+  /* Ngăn kéo SKU: số liệu, form nhập/điều chỉnh, lịch sử của SKU */
+  function adjustDialog(key, focusQty) {
+    var r = ADM.stockRows().filter(function (x) { return x.key === key; })[0];
+    var d = document.getElementById('adj');
+    if (d) d.remove();
+    var hist = ADM.ledger().filter(function (e) { return e.sku === key; }).reverse().slice(0, 6);
+    document.body.insertAdjacentHTML('beforeend', '<dialog class="sheet" id="adj" aria-labelledby="adj-t">' +
+      '<div class="sheet__head"><div><h2 class="h3 mono" id="adj-t">' + r.sku + '</h2><p>' + ADM.esc(r.p.name) + ' · size ' + r.size + ' · ' + r.location + '</p></div>' +
+        '<button class="icon-btn" type="button" data-a="close" aria-label="Đóng"><svg class="icon icon--md" aria-hidden="true"><use href="#i-x"/></svg></button></div>' +
+      '<div class="sheet__body">' +
+        '<dl class="stock-stats">' +
+          '<div><dt>Tồn thực tế</dt><dd>' + r.onHand + '</dd></div><div><dt>Đang giữ</dt><dd>' + r.reserved + '</dd></div>' +
+          '<div><dt>An toàn</dt><dd>' + r.safety + '</dd></div><div' + (r.ats <= 0 ? ' class="is-low"' : '') + '><dt>Còn bán</dt><dd>' + r.ats + '</dd></div></dl>' +
+        '<section class="sheet__section" aria-labelledby="adj-form-t"><h3 id="adj-form-t">Nhập hoặc điều chỉnh</h3>' +
+          '<div role="radiogroup" aria-label="Loại thao tác">' +
+            '<label class="choice"><input type="radio" name="adj-type" value="RECEIVE" checked><div><div class="choice__title">Nhập kho</div><div class="choice__desc">Hàng mới về từ nhà cung cấp</div></div><span></span></label>' +
+            '<label class="choice"><input type="radio" name="adj-type" value="ADJUST"><div><div class="choice__title">Điều chỉnh kiểm kê</div><div class="choice__desc">Số đếm thực tế lệch với hệ thống (có thể âm)</div></div><span></span></label></div>' +
+          '<div class="field"><label for="adj-qty">Số lượng</label><input class="input mono" id="adj-qty" type="number" step="1" value="1" inputmode="numeric"><span class="field__error" id="adj-qty-err"></span></div>' +
+          '<div class="field"><label for="adj-reason">Lý do / chứng từ</label><input class="input" id="adj-reason" placeholder="Ví dụ: PO-2611-014 hoặc kiểm kê 16.11"><span class="field__error">Bắt buộc ghi lý do để truy vết.</span></div>' +
+          '<p class="preview-line" id="adj-preview" aria-live="polite"></p>' +
+        '</section>' +
+        '<section class="sheet__section" aria-labelledby="adj-h-t"><h3 id="adj-h-t">Lịch sử SKU</h3>' +
+          (hist.length ? '<ol class="audit">' + hist.map(function (e) { return entryHtml(e, false); }).join('') + '</ol>' : '<p class="muted">Chưa có biến động.</p>') +
+        '</section>' +
+      '</div>' +
+      '<div class="sheet__foot"><button class="btn btn--outline" type="button" data-a="close">Huỷ</button><button class="btn" type="button" data-a="save">Ghi nhận</button></div></dialog>');
+    d = document.getElementById('adj');
+    function preview() {
+      var n = parseInt($('#adj-qty').value, 10) || 0;
+      var onHand = r.onHand + n, ats = onHand - r.reserved - r.safety;
+      $('#adj-preview').textContent = 'Sau thao tác: tồn thực tế ' + onHand + ' · còn bán ' + ats;
+      return { n: n, onHand: onHand };
+    }
+    d.addEventListener('input', preview);
+    d.addEventListener('click', function (e) {
+      if (e.target === d) { d.close(); return; } /* bấm ra nền mờ */
+      var b = e.target.closest('[data-a]'); if (!b) return;
+      if (b.getAttribute('data-a') === 'close') { d.close(); return; }
+      var type = $('input[name=adj-type]:checked', d).value, pv = preview(), reason = $('#adj-reason').value.trim();
+      var qf = $('#adj-qty').closest('.field'), rf = $('#adj-reason').closest('.field');
+      var qErr = '';
+      if (!pv.n) qErr = 'Nhập số lượng khác 0.';
+      else if (type === 'RECEIVE' && pv.n < 0) qErr = 'Nhập kho phải là số dương. Dùng "Điều chỉnh" để giảm.';
+      /* Bất biến: tồn thực tế không được thấp hơn số đang giữ cho đơn — nếu không sẽ bán quá số hàng có */
+      else if (pv.onHand < 0) qErr = 'Tồn thực tế không thể âm (hiện có ' + r.onHand + ').';
+      else if (pv.onHand < r.reserved) qErr = 'Không thể giảm dưới ' + r.reserved + ' vì đang giữ hàng cho đơn chưa xuất kho. Huỷ hoặc xử lý các đơn đó trước.';
+      $('#adj-qty-err').textContent = qErr; qf.classList.toggle('is-invalid', !!qErr);
+      rf.classList.toggle('is-invalid', !reason);
+      if (qErr) { $('#adj-qty').focus(); return; }
+      if (!reason) { $('#adj-reason').focus(); return; }
+      ADM.move(key, type, pv.n, reason);
+      d.close(); state.selected = key; render();
+      var back = document.querySelector('#rows [data-view="' + key + '"]'); if (back) back.focus();
+      CAD.toast('Đã ghi nhận ' + (pv.n > 0 ? '+' : '') + pv.n + ' cho ' + r.sku);
+    });
+    d.showModal(); preview();
+    if (focusQty) { $('#adj-qty').focus(); $('#adj-qty').select(); }
+  }
+
+  main.addEventListener('click', function (e) {
+    var f = e.target.closest('[data-filter]');
+    if (f) { state.filter = f.getAttribute('data-filter'); document.querySelectorAll('[data-filter]').forEach(function (b) { b.setAttribute('aria-pressed', b === f); }); render(); return; }
+    if (e.target.closest('[data-clear]')) { state.q = ''; state.filter = ''; $('#q').value = ''; document.querySelectorAll('[data-filter]').forEach(function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-filter') === ''); }); render(); return; }
+    var a = e.target.closest('[data-adjust]');
+    if (a) { select(a.getAttribute('data-adjust')); adjustDialog(a.getAttribute('data-adjust'), true); return; }
+    var v = e.target.closest('[data-view]');
+    if (v) {
+      var k = v.getAttribute('data-view');
+      if (!k) { state.selected = null; render(); return; }
+      select(k); adjustDialog(k, false); return;
+    }
+    /* Bấm vào bất kỳ đâu trên dòng: mở ngăn kéo của SKU đó */
+    var tr = e.target.closest('tr[data-key]');
+    if (tr && !e.target.closest('a, button, input')) { select(tr.getAttribute('data-key')); adjustDialog(tr.getAttribute('data-key'), false); }
+  });
+  $('#q').addEventListener('input', function () { state.q = this.value.trim(); render(); });
+  render();
+})();
+</script>
+</body>
+</html>

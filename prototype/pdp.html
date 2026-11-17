@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sản phẩm | Cadence</title>
+  <meta name="description" content="Chi tiết sản phẩm Cadence: chọn màu, size còn hàng, bảng quy đổi size, giao hàng và đổi size 30 ngày.">
+  <meta name="theme-color" content="#111111">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://images.unsplash.com">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,800&family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/tokens.css?v=20261117-10">
+  <link rel="stylesheet" href="assets/css/styles.css?v=20261117-10">
+</head>
+<body>
+<script src="assets/js/sprite.js?v=20261117-10"></script>
+<script src="assets/js/layout.js?v=20261117-10" data-part="header"></script>
+
+<main id="main">
+  <div class="container">
+    <nav class="crumbs" aria-label="Breadcrumb" id="crumbs"></nav>
+
+    <div class="pdp">
+      <div class="gallery" aria-label="Ảnh sản phẩm">
+        <div class="gallery__thumbs" id="thumbs" role="group" aria-label="Chọn ảnh"></div>
+        <div class="gallery__track" id="gallery" tabindex="0"></div>
+        <span class="gallery__count label" id="gallery-count" aria-hidden="true"></span>
+      </div>
+
+      <div class="buy">
+        <div style="display:grid;gap:8px">
+          <h1 class="buy__title" id="p-name"></h1>
+          <p class="muted" id="p-meta"></p>
+          <a class="rating" href="#reviews" id="p-rating"></a>
+        </div>
+        <p class="price buy__price" id="p-price"></p>
+
+        <div>
+          <div class="field-head"><span>Màu: <strong id="p-color-name"></strong></span></div>
+          <div class="swatch-row" id="p-colors" role="group" aria-label="Chọn màu"></div>
+        </div>
+
+        <div>
+          <div class="field-head">
+            <span id="size-label"><strong>Chọn size</strong> <span class="muted" id="size-system"></span></span>
+            <button class="link" type="button" id="size-guide-btn">Hướng dẫn chọn size</button>
+          </div>
+          <div class="pdp-sizes" id="p-sizes" role="group" aria-labelledby="size-label"></div>
+          <p class="field-msg" id="size-msg" aria-live="polite"></p>
+        </div>
+
+        <div class="fit" id="p-fit"></div>
+
+        <div class="buy__actions" id="buy-actions">
+          <button class="btn btn--lg btn--block" type="button" id="add-btn">Thêm vào giỏ</button>
+          <button class="btn btn--outline btn--lg btn--block wish-btn" type="button" id="wish-btn" aria-pressed="false">Yêu thích<svg class="icon icon--sm" aria-hidden="true"><use href="#i-heart"/></svg></button>
+        </div>
+
+        <ul class="perks-list">
+          <li><span>Giao tới TP. Hồ Chí Minh</span><span id="eta"></span></li>
+          <li><span>Phí giao hàng</span><span>Miễn phí từ 1.500.000 ₫</span></li>
+          <li><span>Đổi size</span><span>Miễn phí trong 30 ngày</span></li>
+          <li><span>Thanh toán</span><span>COD hoặc VNPay</span></li>
+        </ul>
+
+        <div class="acc">
+          <details open><summary>Mô tả</summary><div class="acc__body" id="p-desc"></div></details>
+          <details><summary>Thông số</summary><div class="acc__body"><dl class="spec__table" id="p-specs"></dl></div></details>
+          <details><summary>Giao hàng & đổi trả</summary><div class="acc__body">
+            <p>Nội thành TP. HCM và Hà Nội: 1–2 ngày. Tỉnh thành khác: 3–5 ngày. Đơn từ 1.500.000 ₫ được miễn phí giao hàng.</p>
+            <p>Đổi size miễn phí trong 30 ngày kể từ ngày nhận hàng, sản phẩm chưa qua sử dụng và còn tem mác. Khi bạn gửi yêu cầu đổi, size mới được giữ lại cho bạn ngay.</p>
+          </div></details>
+        </div>
+      </div>
+    </div>
+
+    <section class="reviews" id="reviews" aria-labelledby="rev-title"></section>
+
+    <section class="section" aria-labelledby="related-title">
+      <div class="section__head"><h2 class="section__title" id="related-title">Có thể bạn cũng thích</h2></div>
+      <div class="grid grid--4" id="related"></div>
+    </section>
+  </div>
+</main>
+
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Xem ảnh lớn" hidden>
+  <button class="icon-btn lightbox__close" type="button" data-lb-close aria-label="Đóng"><svg class="icon"><use href="#i-x"/></svg></button>
+  <button class="icon-btn lightbox__nav" type="button" data-dir="-1" aria-label="Ảnh trước"><svg class="icon" style="transform:scaleX(-1)"><use href="#i-chev-r"/></svg></button>
+  <button class="icon-btn lightbox__nav" type="button" data-dir="1" aria-label="Ảnh sau"><svg class="icon"><use href="#i-chev-r"/></svg></button>
+</div>
+
+<div class="sticky-buy" id="sticky-buy" aria-hidden="true">
+  <div><div style="font-weight:600;font-size:.875rem" id="sb-name"></div><div class="mono muted" style="font-size:.8125rem" id="sb-price"></div></div>
+  <button class="btn" type="button" id="sb-add" tabindex="-1">Thêm vào giỏ</button>
+</div>
+
+<script>CAD.layout('footer')</script>
+
+<aside class="drawer drawer--right" id="size-drawer" aria-label="Hướng dẫn chọn size" inert>
+  <div class="drawer__head">
+    <h2 class="h3">Hướng dẫn chọn size</h2>
+    <button class="icon-btn" type="button" data-close aria-label="Đóng"><svg class="icon"><use href="#i-x"/></svg></button>
+  </div>
+  <div class="drawer__body" id="size-guide"></div>
+</aside>
+
+<script src="assets/js/data.js?v=20261117-10"></script>
+<script src="assets/js/app.js?v=20261117-10"></script>
+<script src="assets/js/pdp.js?v=20261117-10"></script>
+</body>
+</html>

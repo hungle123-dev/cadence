@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cổng thanh toán (mô phỏng) | Cadence prototype</title>
+  <meta name="robots" content="noindex">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,800&family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/tokens.css?v=20261117-10">
+  <link rel="stylesheet" href="assets/css/styles.css?v=20261117-10">
+  <link rel="stylesheet" href="assets/css/commerce.css?v=20261117-10">
+</head>
+<body class="gw-page">
+<script src="assets/js/sprite.js?v=20261117-10"></script>
+<div class="demo-bar" role="note">
+  <div class="container demo-bar__inner">
+    <strong>Prototype</strong>
+    <span>Đây là trang <strong>mô phỏng</strong> cổng thanh toán, thay cho trang của VNPay ở hệ thống thật. Không có giao dịch nào được thực hiện.</span>
+  </div>
+</div>
+
+<main id="main" class="container">
+  <div class="gateway" id="gw"></div>
+</main>
+
+<script src="assets/js/data.js?v=20261117-10"></script>
+<script src="assets/js/commerce.js?v=20261117-10"></script>
+<script src="assets/js/app.js?v=20261117-10"></script>
+<script>
+(function () {
+  var number = new URLSearchParams(location.search).get('order');
+  var order = CAD.getOrder(number);
+  var gw = document.getElementById('gw');
+  if (!order) { gw.innerHTML = '<div class="gateway__head"><h1 class="h3">Không tìm thấy giao dịch</h1><p>Liên kết thanh toán không hợp lệ hoặc đã hết hạn.</p></div><a class="btn btn--block" href="index.html">Về trang chủ</a>'; return; }
+
+  gw.innerHTML =
+    '<div class="gateway__head"><h1 class="h3">Thanh toán cho Cadence</h1><p>Cổng thanh toán mô phỏng · quét mã bằng app ngân hàng</p></div>' +
+    '<dl class="gateway__bill"><div><dt>Mã đơn hàng</dt><dd>' + order.number + '</dd></div><div><dt>Số tiền</dt><dd class="gateway__amount">' + CAD.formatPrice(order.totals.total) + '</dd></div></dl>' +
+    '<div class="qr" role="img" aria-label="Mã QR minh hoạ"><div></div></div>' +
+    '<p class="gateway__timer" aria-live="off">Giao dịch hết hạn sau <span id="gw-timer">15:00</span></p>' +
+    '<div class="gateway__sim" role="group" aria-labelledby="gw-sim">' +
+      '<p id="gw-sim">Mô phỏng kết quả trả về từ cổng:</p>' +
+      '<button class="btn btn--block" type="button" data-r="success">Thanh toán thành công</button>' +
+      '<button class="btn btn--outline btn--block" type="button" data-r="pending">Thành công, nhưng IPN đến chậm</button>' +
+      '<button class="btn btn--outline btn--block" type="button" data-r="failed">Ngân hàng từ chối</button>' +
+      '<button class="btn btn--outline btn--block" type="button" data-r="expired">Hết thời gian thanh toán</button>' +
+      '<button class="link gateway__cancel" type="button" data-r="cancel">Huỷ và quay lại cửa hàng</button>' +
+    '</div>';
+
+  var t = document.getElementById('gw-timer');
+  setInterval(function () {
+    var s = Math.max(0, Math.floor((order.payment.expiresAt - Date.now()) / 1000));
+    t.textContent = ('0' + Math.floor(s / 60)).slice(-2) + ':' + ('0' + s % 60).slice(-2);
+  }, 1000);
+
+  /* Ở hệ thống thật: cổng gọi IPN (server-to-server) để báo kết quả, rồi chuyển trình duyệt về Return URL.
+     Return URL chỉ để HIỂN THỊ; trạng thái đơn chỉ đổi khi IPN hợp lệ đến. Prototype mô phỏng cả hai bằng localStorage. */
+  gw.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-r]'); if (!b) return;
+    var r = b.getAttribute('data-r');
+    if (r === 'success') { order.payment.status = 'PAID'; order.status = 'PLACED'; order.payment.paidAt = Date.now(); }
+    if (r === 'pending') { order.payment.ipnDelayUntil = Date.now() + 6000; }
+    if (r === 'failed' || r === 'cancel') { order.payment.status = 'FAILED'; }
+    if (r === 'expired') { order.payment.status = 'EXPIRED'; order.status = 'CANCELLED'; order.cancelReason = 'Hết hạn thanh toán'; }
+    CAD.saveOrder(order);
+    location.href = 'order-result.html?order=' + order.number;
+  });
+})();
+</script>
+</body>
+</html>

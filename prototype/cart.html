@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Giỏ hàng | Cadence</title>
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#111111">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://images.unsplash.com">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,800&family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/tokens.css?v=20261117-10">
+  <link rel="stylesheet" href="assets/css/styles.css?v=20261117-10">
+  <link rel="stylesheet" href="assets/css/commerce.css?v=20261117-10">
+</head>
+<body>
+<script src="assets/js/sprite.js?v=20261117-10"></script>
+<script src="assets/js/layout.js?v=20261117-10" data-part="header"></script>
+
+<div class="demo-bar" role="note">
+  <div class="container demo-bar__inner">
+    <strong>Prototype</strong><span class="muted">Xem trạng thái giỏ:</span>
+    <a href="cart.html?demo=normal" data-demo="normal">Có hàng</a>
+    <a href="cart.html?demo=warnings" data-demo="warnings">Có cảnh báo (giá đổi, hết size)</a>
+    <a href="cart.html?demo=empty" data-demo="empty">Giỏ trống</a>
+    <span class="muted">· Voucher thử: CADENCE10, RUN150, FREESHIP</span>
+  </div>
+</div>
+
+<main id="main">
+  <div class="container cart-wrap">
+    <div class="page-head">
+      <h1 class="h1">Giỏ hàng</h1><span class="page-head__meta" id="cart-count-title"></span>
+    </div>
+    <div id="cart-root"></div>
+  </div>
+</main>
+
+<div class="mobile-checkout" id="mobile-checkout" hidden>
+  <div class="mobile-checkout__total"><span>Tổng cộng</span><span id="mc-total"></span></div>
+  <a class="btn" href="checkout.html" id="mc-btn">Thanh toán</a>
+</div>
+
+<script>CAD.layout('footer')</script>
+<script src="assets/js/data.js?v=20261117-10"></script>
+<script src="assets/js/commerce.js?v=20261117-10"></script>
+<script src="assets/js/app.js?v=20261117-10"></script>
+<script src="assets/js/cart.js?v=20261117-10"></script>
+</body>
+</html>

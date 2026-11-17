@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sản phẩm | Cadence Admin</title>
+  <meta name="robots" content="noindex">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,800&family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/tokens.css?v=20261117-10">
+  <link rel="stylesheet" href="../assets/css/styles.css?v=20261117-10">
+  <link rel="stylesheet" href="../assets/css/commerce.css?v=20261117-10">
+  <link rel="stylesheet" href="admin.css?v=20261117-10">
+</head>
+<body class="admin">
+<script src="../assets/js/sprite.js?v=20261117-10"></script>
+<script src="../assets/js/data.js?v=20261117-10"></script>
+<script src="../assets/js/app.js?v=20261117-10"></script>
+<script src="admin.js?v=20261117-10"></script>
+<script>
+(function () {
+  var main = ADM.shell('products');
+  var $ = function (s) { return document.querySelector(s); };
+  var L = CAD.labels;
+  var status = CAD.store.get('cad-product-status-v3', {});
+  var STATUS = { active: ['Đang bán', 'ok'], draft: ['Nháp', 'muted'], scheduled: ['Hẹn giờ ra mắt', 'info'], hidden: ['Đã ẩn', 'muted'] };
+  var filter = { q: '', sport: '', status: '' };
+
+  main.innerHTML =
+    '<div class="page-head"><div><h1 class="h1">Sản phẩm</h1><p>Mô hình 3 tầng: Sản phẩm → Phối màu → Size (SKU). Tồn kho tính theo SKU.</p></div>' +
+      '<a class="btn" href="product.html"><svg class="icon" aria-hidden="true"><use href="#a-plus"/></svg>Thêm sản phẩm</a></div>' +
+    '<section class="card card--flush" aria-label="Danh sách sản phẩm">' +
+    '<div class="filters-row">' +
+      '<label class="field adm-search grow"><span class="sr-only">Tìm sản phẩm</span><svg class="icon icon--sm" aria-hidden="true"><use href="#i-search"/></svg><input class="input" id="q" type="search" placeholder="Tìm theo tên"></label>' +
+      '<label><span class="sr-only">Môn</span><select class="select" id="sport"><option value="">Mọi môn</option>' + Object.keys(L.sport).map(function (k) { return '<option value="' + k + '">' + L.sport[k] + '</option>'; }).join('') + '</select></label>' +
+      '<label><span class="sr-only">Trạng thái</span><select class="select" id="status"><option value="">Mọi trạng thái</option>' + Object.keys(STATUS).map(function (k) { return '<option value="' + k + '">' + STATUS[k][0] + '</option>'; }).join('') + '</select></label>' +
+      '<span class="count" id="count" aria-live="polite"></span></div>' +
+    '<div class="table-wrap"><table class="table table--list table--products"><thead><tr><th class="col-sticky col-edge">Sản phẩm</th><th>Danh mục</th><th class="num">Phối màu</th><th class="num">SKU</th><th class="num">Còn bán</th><th class="num">Giá</th><th>Trạng thái</th></tr></thead><tbody id="rows"></tbody></table></div>' +
+    '</section>';
+
+  function render() {
+    var rows = ADM.stockRows();
+    var list = CAD.products.filter(function (p) {
+      var st = status[p.slug] || 'active';
+      return (!filter.q || CAD.norm(p.name).indexOf(CAD.norm(filter.q)) > -1) && (!filter.sport || p.sport === filter.sport) && (!filter.status || st === filter.status);
+    });
+    $('#count').textContent = list.length + ' sản phẩm';
+    $('#rows').innerHTML = list.map(function (p) {
+      var mine = rows.filter(function (r) { return r.p === p; });
+      var ats = mine.reduce(function (s, r) { return s + Math.max(0, r.ats); }, 0);
+      var out = mine.filter(function (r) { return r.ats <= 0; }).length;
+      var st = STATUS[status[p.slug] || 'active'];
+      return '<tr class="is-link" data-href="product.html?p=' + p.slug + '">' +
+        '<td class="col-primary col-sticky col-edge"><div class="prod-cell"><img class="thumb" src="' + CAD.img(p.img, 120) + '" alt="" width="120" height="150" decoding="async" loading="lazy">' +
+          '<div><a href="product.html?p=' + p.slug + '">' + ADM.esc(p.name) + '</a><span class="sub">' + L.gender[p.gender] + ' · ' + L.sport[p.sport] + '</span></div></div></td>' +
+        '<td class="m-hide">' + p.category + '</td><td class="num m-hide">' + p.colors.length + '</td><td class="num m-hide">' + mine.length * p.colors.length + '</td>' +
+        '<td class="num col-ats" data-label="Còn bán">' + ats + (out ? '<span class="sub stock-out">' + out + ' size hết</span>' : '') + '</td>' +
+        '<td class="num col-price">' + (p.salePrice ? '<span class="price-sale">' + CAD.formatPrice(p.salePrice) + '</span><s class="sub">' + CAD.formatPrice(p.price) + '</s>' : CAD.formatPrice(p.price)) + '</td>' +
+        '<td class="col-badge"><span class="pill pill--' + st[1] + '">' + st[0] + '</span></td></tr>';
+    }).join('') || '<tr><td colspan="7" class="table-empty">Không có sản phẩm khớp bộ lọc.</td></tr>';
+  }
+  $('#q').addEventListener('input', function () { filter.q = this.value; render(); });
+  $('#sport').addEventListener('change', function () { filter.sport = this.value; render(); });
+  $('#status').addEventListener('change', function () { filter.status = this.value; render(); });
+  main.addEventListener('click', function (e) { var tr = e.target.closest('tr[data-href]'); if (tr && !e.target.closest('a')) location.href = tr.getAttribute('data-href'); });
+  render();
+})();
+</script>
+</body>
+</html>

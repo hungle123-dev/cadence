@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Chi tiết đơn | Cadence Admin</title>
+  <meta name="robots" content="noindex">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,800&family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/tokens.css?v=20261117-10">
+  <link rel="stylesheet" href="../assets/css/styles.css?v=20261117-10">
+  <link rel="stylesheet" href="../assets/css/commerce.css?v=20261117-10">
+  <link rel="stylesheet" href="admin.css?v=20261117-10">
+</head>
+<body class="admin">
+<script src="../assets/js/sprite.js?v=20261117-10"></script>
+<script src="../assets/js/data.js?v=20261117-10"></script>
+<script src="../assets/js/app.js?v=20261117-10"></script>
+<script src="admin.js?v=20261117-10"></script>
+<script>
+(function () {
+  var main = ADM.shell('orders');
+  var $ = function (s) { return document.querySelector(s); };
+  var number = new URLSearchParams(location.search).get('n');
+  var o = number && ADM.order(number);
+  if (!o) { main.innerHTML = '<div class="page-head"><div><h1 class="h1">Không tìm thấy đơn</h1><p>Mã đơn không tồn tại hoặc đã bị xoá khỏi dữ liệu mẫu.</p></div></div><a class="btn" href="orders.html" style="justify-self:start">Về danh sách đơn</a>'; return; }
+  document.title = o.number + ' | Cadence Admin';
+
+  /* ---------- Máy trạng thái: chỉ hiện thao tác hợp lệ với trạng thái hiện tại ---------- */
+  function actions() {
+    var a = [], paid = o.payment.status === 'PAID', ful = o.fulfillment || 'UNFULFILLED';
+    if (o.status === 'PENDING_CONFIRMATION') { a.push(['confirm', 'Xác nhận đơn', 'btn']); a.push(['no-answer', 'Ghi nhận: không liên lạc được', 'btn btn--outline']); }
+    if (o.status === 'PENDING_PAYMENT' && o.payment.status === 'PENDING') a.push(['reconcile', 'Đối soát với VNPay', 'btn']);
+    if (o.status === 'PLACED' && ful === 'UNFULFILLED') a.push(['pack', 'Đánh dấu đã đóng gói', 'btn']);
+    if (o.status === 'PLACED' && ful === 'PACKED') a.push(['ship', 'Tạo vận đơn & bàn giao', 'btn']);
+    if (ful === 'SHIPPED') { a.push(['deliver', 'Giao thành công', 'btn']); a.push(['fail', 'Giao thất bại · hoàn kho', 'btn btn--outline']); }
+    if (ful === 'DELIVERED' && o.status === 'PLACED') a.push(['complete', 'Hoàn tất đơn (hết hạn đổi trả)', 'btn btn--outline']);
+    if (o.payment.status === 'REFUND_PENDING') a.push(['refund', ADM.can('refundOver') >= o.totals.total ? 'Duyệt & hoàn tiền' : 'Chờ Quản trị duyệt hoàn tiền', ADM.can('refundOver') >= o.totals.total ? 'btn' : 'btn btn--outline', ADM.can('refundOver') < o.totals.total]);
+    if (o.status !== 'CANCELLED' && o.status !== 'COMPLETED' && (ful === 'UNFULFILLED' || ful === 'PACKED')) a.push(['cancel', 'Huỷ đơn', 'btn btn--outline']);
+    return a;
+  }
+
+  function machine(steps, now) {
+    var at = steps.map(function (s) { return s[0]; }).indexOf(now);
+    return '<div class="machine">' + steps.map(function (s, i) {
+      return (i ? '<svg class="icon" aria-hidden="true"><use href="#i-chev-r"/></svg>' : '') +
+        '<span class="' + (s[0] === now ? 'is-now' : i < at ? 'is-done' : '') + '"' + (s[0] === now ? ' aria-current="step"' : '') + '>' + s[1] + '</span>';
+    }).join('') + '</div>';
+  }
+
+  function render() {
+    var ful = o.fulfillment || 'UNFULFILLED';
+    var history = ADM.orders().filter(function (x) { return x.contact.phone === o.contact.phone; }).length;
+    var orderSteps = o.status === 'PENDING_PAYMENT' ? [['PENDING_PAYMENT', 'Chờ thanh toán'], ['PLACED', 'Đã xác nhận'], ['COMPLETED', 'Hoàn tất']]
+      : [['PENDING_CONFIRMATION', 'Chờ xác nhận'], ['PLACED', 'Đã xác nhận'], ['COMPLETED', 'Hoàn tất']];
+    if (o.status === 'CANCELLED') orderSteps.push(['CANCELLED', 'Đã huỷ']);
+    main.innerHTML =
+      '<div class="page-head"><div class="page-head__title"><a class="back" href="orders.html" aria-label="Quay lại danh sách đơn hàng"><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a>' +
+        '<div><h1 class="h1 mono">' + o.number + '</h1>' +
+        '<p>Đặt lúc ' + ADM.when(o.createdAt) + ' · ' + (o.payment.method === 'cod' ? 'COD' : 'VNPay') + ' · ' + o.shipping.name + '</p>' +
+        '<div class="page-head__badges">' + ADM.pill('order', o.status) + ADM.pill('pay', o.payment.status) + ADM.pill('ful', ful) + '</div></div></div></div>' +
+
+      '<div class="detail">' +
+        '<div class="stack">' +
+          '<section class="card" aria-labelledby="flow-title"><h2 class="h3" id="flow-title">Xử lý đơn</h2>' +
+            '<div class="flow"><div class="flow__row"><span>Đơn hàng</span>' + machine(orderSteps, o.status) + '</div>' +
+            '<div class="flow__row"><span>Giao hàng</span>' + machine([['UNFULFILLED', 'Chưa xử lý'], ['PACKED', 'Đóng gói'], ['SHIPPED', 'Đang giao'], ['DELIVERED', 'Đã giao']].concat(ful === 'FAILED_DELIVERY' ? [['FAILED_DELIVERY', 'Hoàn kho']] : []), ful) + '</div></div>' +
+            (o.cancelReason ? '<div class="notice notice--error"><strong>Đã huỷ</strong><span>' + ADM.esc(o.cancelReason) + '</span></div>' : '') +
+            (ADM.isStalePayment(o) ? '<div class="notice notice--warn"><strong>Chưa nhận IPN sau 15 phút</strong><span>Có thể IPN bị lỡ. Đối soát sẽ hỏi trạng thái giao dịch trực tiếp từ cổng thanh toán.</span></div>' : '') +
+            '<div class="actions-bar">' + (actions().map(function (a) { return '<button class="' + a[2] + '" type="button" data-act="' + a[0] + '"' + (a[3] ? ' disabled title="Vai trò Vận hành chỉ được hoàn tiền tối đa 2.000.000 ₫"' : '') + '>' + a[1] + '</button>'; }).join('') || '<span class="muted">Không còn thao tác nào cho đơn này.</span>') + '</div>' +
+          '</section>' +
+
+          '<section class="card" aria-labelledby="items-title"><h2 class="h3" id="items-title">Sản phẩm (bản chụp lúc đặt)</h2>' +
+            '<div class="table-wrap"><table class="table table--list table--lines"><thead><tr><th><span class="sr-only">Ảnh</span></th><th>Sản phẩm</th><th class="num">Đơn giá</th><th class="num">SL</th><th class="num">Giảm phân bổ</th><th class="num">Thành tiền</th></tr></thead><tbody>' +
+            o.lines.map(function (l) {
+              return '<tr><td class="col-thumb" style="width:56px"><img class="thumb" src="' + CAD.img(l.img, 120) + '" alt="" width="120" height="150" decoding="async" loading="lazy"></td>' +
+                '<td class="wrap col-primary" style="min-width:200px"><strong>' + ADM.esc(l.name) + '</strong><span class="sub">' + ADM.esc(l.color) + ' · Size ' + l.size + ' · <span class="mono">' + ADM.skuCode(l.slug, l.size) + '</span></span></td>' +
+                '<td class="num" data-label="Đơn giá">' + CAD.formatPrice(l.unit) + '</td><td class="num" data-label="× ">' + l.qty + '</td>' +
+                '<td class="num' + (l.allocatedDiscount ? '' : ' m-hide') + '" data-label="Giảm">' + (l.allocatedDiscount ? '−' + CAD.formatPrice(l.allocatedDiscount) : '—') + '</td><td class="num col-line-total">' + CAD.formatPrice(l.unit * l.qty - (l.allocatedDiscount || 0)) + '</td></tr>';
+            }).join('') + '</tbody></table></div>' +
+            '<div class="sum-rows">' +
+              '<div><span>Tạm tính</span><span>' + CAD.formatPrice(o.totals.subtotal) + '</span></div>' +
+              (o.totals.discount ? '<div><span>Giảm giá' + (o.voucher ? ' · ' + o.voucher : '') + '</span><span class="price-save">−' + CAD.formatPrice(o.totals.discount) + '</span></div>' : '') +
+              '<div><span>Phí giao hàng</span><span>' + (o.totals.shipping ? CAD.formatPrice(o.totals.shipping) : 'Miễn phí') + '</span></div>' +
+              '<div class="sum-total"><span>Tổng</span><span>' + CAD.formatPrice(o.totals.total) + '</span></div>' +
+              '<div class="sum-vat"><span>Gồm VAT ' + CAD.formatPrice(o.totals.vat || 0) + '</span></div>' +
+            '</div>' +
+          '</section>' +
+
+          '<section class="card" aria-labelledby="audit-title"><h2 class="h3" id="audit-title">Lịch sử thao tác</h2><ol class="audit">' +
+            (o.events || [{ at: o.createdAt, text: 'Đặt hàng', by: 'Khách hàng' }]).slice().reverse().map(function (e) {
+              return '<li><div><div>' + ADM.esc(e.text) + '</div><div class="who">' + ADM.when(e.at) + ' · ' + ADM.esc(e.by || 'Hệ thống') + '</div></div></li>';
+            }).join('') + '</ol></section>' +
+        '</div>' +
+
+        '<div class="stack">' +
+          '<section class="card"><h2 class="h3">Khách hàng</h2><dl class="kv" style="grid-template-columns:1fr">' +
+            '<div><dt>Người nhận</dt><dd>' + ADM.esc(o.address.name) + '<br><span class="mono">' + o.contact.phone + '</span><br>' + ADM.esc(o.contact.email) + '</dd></div>' +
+            '<div><dt>Địa chỉ</dt><dd>' + ADM.esc(o.address.street) + ', ' + ADM.esc(o.address.ward) + ', ' + ADM.esc(o.address.province) + (o.address.note ? '<br><em>' + ADM.esc(o.address.note) + '</em>' : '') + '</dd></div>' +
+            '<div><dt>Lịch sử mua</dt><dd>' + history + ' đơn với số điện thoại này</dd></div>' +
+          '</dl></section>' +
+          '<section class="card"><h2 class="h3">Thanh toán</h2><dl class="kv" style="grid-template-columns:1fr 1fr">' +
+            '<div><dt>Phương thức</dt><dd>' + (o.payment.method === 'cod' ? 'COD' : 'VNPay') + '</dd></div><div><dt>Trạng thái</dt><dd>' + ADM.pill('pay', o.payment.status) + '</dd></div>' +
+            '<div><dt>Số tiền</dt><dd class="mono">' + CAD.formatPrice(o.totals.total) + '</dd></div><div><dt>Mã giao dịch</dt><dd class="mono">' + (o.payment.method === 'vnpay' ? 'VNP' + o.number.slice(-4) + String(o.createdAt).slice(-6) : '—') + '</dd></div>' +
+          '</dl></section>' +
+          '<section class="card"><h2 class="h3">Giao hàng</h2><dl class="kv" style="grid-template-columns:1fr">' +
+            '<div><dt>Phương thức</dt><dd>' + o.shipping.name + ' · ' + o.shipping.eta + '</dd></div>' +
+            '<div><dt>Mã vận đơn</dt><dd class="mono">' + (o.tracking || 'Chưa tạo') + '</dd></div>' +
+            '<div><dt>Kho xuất</dt><dd>Kho HCM</dd></div>' +
+          '</dl></section>' +
+          '<section class="card"><h2 class="h3"><label for="note">Ghi chú nội bộ</label></h2>' +
+            '<textarea class="textarea" id="note" placeholder="Chỉ nhân viên thấy. Ví dụ: khách hẹn giao sau 18h"></textarea>' +
+            '<button class="btn btn--outline btn--sm" type="button" data-act="note" style="justify-self:end">Lưu ghi chú</button></section>' +
+        '</div>' +
+      '</div>';
+  }
+
+  function stockOut(type, reason) { o.lines.forEach(function (l) { ADM.move(CAD.skuKey(l.slug, l.size), type, l.qty, reason); }); }
+
+  function cancelFlow() {
+    var paid = o.payment.status === 'PAID';
+    var d = document.getElementById('adm-cancel');
+    if (!d) {
+      document.body.insertAdjacentHTML('beforeend', '<dialog class="dialog" id="adm-cancel" aria-labelledby="ac-t"><div class="dialog__body">' +
+        '<h2 class="h3" id="ac-t">Huỷ đơn ' + o.number + '?</h2><p class="muted" id="ac-d"></p>' +
+        '<div class="field"><label for="ac-r">Lý do (bắt buộc, khách sẽ thấy)</label><select class="select" id="ac-r"><option value="">Chọn lý do</option>' +
+        '<option>Khách yêu cầu huỷ</option><option>Không liên lạc được khách</option><option>Hết hàng khi kiểm kho</option><option>Nghi ngờ gian lận</option></select><span class="field__error">Chọn lý do huỷ.</span></div>' +
+        '<div class="dialog__actions"><button class="btn btn--outline" type="button" data-d="keep">Không huỷ</button><button class="btn btn--danger" type="button" data-d="go">Huỷ đơn</button></div></div></dialog>');
+      d = document.getElementById('adm-cancel');
+      d.addEventListener('click', function (e) {
+        var b = e.target.closest('[data-d]'); if (!b) return;
+        if (b.getAttribute('data-d') === 'keep') { d.close(); return; }
+        var r = document.getElementById('ac-r');
+        if (!r.value) { r.closest('.field').classList.add('is-invalid'); r.focus(); return; }
+        d.close(); d._go(r.value);
+      });
+    }
+    document.getElementById('ac-d').textContent = paid ? 'Đơn đã thanh toán ' + CAD.formatPrice(o.totals.total) + '. Sau khi huỷ sẽ tạo yêu cầu hoàn tiền.' : 'Hàng giữ cho đơn sẽ được trả lại để bán.';
+    document.getElementById('ac-r').value = ''; document.getElementById('ac-r').closest('.field').classList.remove('is-invalid');
+    d._go = function (reason) {
+      o.status = 'CANCELLED'; o.cancelReason = reason;
+      ADM.event(o, 'Huỷ đơn: ' + reason + ' · trả ' + o.lines.reduce(function (s, l) { return s + l.qty; }, 0) + ' sản phẩm về hàng bán');
+      if (paid) { o.payment.status = 'REFUND_PENDING'; ADM.event(o, 'Tạo yêu cầu hoàn tiền ' + CAD.formatPrice(o.totals.total)); }
+      save('Đã huỷ đơn');
+    };
+    d.showModal();
+  }
+
+  function save(msg) { ADM.saveOrder(o); render(); if (msg) CAD.toast(msg); }
+
+  main.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-act]'); if (!b || b.disabled) return;
+    var act = b.getAttribute('data-act');
+    if (act === 'confirm') { o.status = 'PLACED'; ADM.event(o, 'Đã xác nhận đơn qua điện thoại'); save('Đã xác nhận đơn'); }
+    if (act === 'no-answer') { ADM.event(o, 'Gọi xác nhận: không liên lạc được (lần ' + ((o.events || []).filter(function (x) { return /không liên lạc/.test(x.text); }).length + 1) + ')'); save('Đã ghi nhận cuộc gọi'); }
+    if (act === 'reconcile') { o.payment.status = 'PAID'; o.payment.paidAt = Date.now(); o.status = 'PLACED'; ADM.event(o, 'Đối soát: VNPay xác nhận giao dịch thành công (IPN bị lỡ)'); save('Đối soát xong: đơn đã thanh toán'); }
+    if (act === 'pack') { o.fulfillment = 'PACKED'; ADM.event(o, 'Kho đã đóng gói'); save('Đã đóng gói'); }
+    if (act === 'ship') {
+      o.fulfillment = 'SHIPPED'; o.tracking = 'VN' + Math.floor(1e9 + Math.random() * 9e9);
+      stockOut('SHIP', 'Xuất kho cho đơn ' + o.number);
+      ADM.event(o, 'Đã giao cho đơn vị vận chuyển · ' + o.tracking + ' · xuất kho');
+      save('Đã tạo vận đơn ' + o.tracking);
+    }
+    if (act === 'deliver') {
+      o.fulfillment = 'DELIVERED';
+      if (o.payment.method === 'cod') { o.payment.status = 'PAID'; ADM.event(o, 'Đã giao · shipper đã thu ' + CAD.formatPrice(o.totals.total)); }
+      else ADM.event(o, 'Đã giao');
+      save('Đã giao thành công');
+    }
+    if (act === 'fail') {
+      o.fulfillment = 'FAILED_DELIVERY'; o.status = 'CANCELLED'; o.cancelReason = 'Giao thất bại, hàng hoàn về kho';
+      stockOut('RETURN_RESTOCK', 'Hàng hoàn từ đơn ' + o.number);
+      if (o.payment.status === 'PAID') { o.payment.status = 'REFUND_PENDING'; }
+      ADM.event(o, 'Giao thất bại sau 3 lần · hàng hoàn về kho');
+      save('Đã ghi nhận giao thất bại');
+    }
+    if (act === 'complete') { o.status = 'COMPLETED'; ADM.event(o, 'Hoàn tất đơn'); save('Đơn đã hoàn tất'); }
+    if (act === 'refund') { o.payment.status = 'REFUNDED'; ADM.event(o, 'Đã hoàn ' + CAD.formatPrice(o.totals.total) + ' qua VNPay (API hoàn tiền)'); save('Đã hoàn tiền'); }
+    if (act === 'cancel') cancelFlow();
+    if (act === 'note') { var v = $('#note').value.trim(); if (!v) { $('#note').focus(); return; } ADM.event(o, 'Ghi chú: ' + v); save('Đã lưu ghi chú'); }
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>

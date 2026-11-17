@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sửa sản phẩm | Cadence Admin</title>
+  <meta name="robots" content="noindex">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,800&family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/tokens.css?v=20261117-10">
+  <link rel="stylesheet" href="../assets/css/styles.css?v=20261117-10">
+  <link rel="stylesheet" href="../assets/css/commerce.css?v=20261117-10">
+  <link rel="stylesheet" href="admin.css?v=20261117-10">
+</head>
+<body class="admin">
+<script src="../assets/js/sprite.js?v=20261117-10"></script>
+<script src="../assets/js/data.js?v=20261117-10"></script>
+<script src="../assets/js/app.js?v=20261117-10"></script>
+<script src="admin.js?v=20261117-10"></script>
+<script>
+(function () {
+  var main = ADM.shell('products');
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+  var L = CAD.labels;
+  var slug = new URLSearchParams(location.search).get('p');
+  var src = slug && CAD.find(slug);
+  var isNew = !src;
+  var canPrice = ADM.can('editPrice');
+  var statusMap = CAD.store.get('cad-product-status-v3', {});
+  var stock = {}; ADM.stockRows().forEach(function (r) { stock[r.key] = r.ats; });
+
+  /* Bản nháp đang sửa (không đụng vào dữ liệu gốc cho tới khi Lưu) */
+  var p = isNew
+    ? { slug: '', name: '', category: 'Giày chạy bộ', gender: 'unisex', sport: 'chay-bo', price: 0, salePrice: null, desc: '', img: null, gallery: [],
+        colors: [{ name: '', family: 'black' }], sizes: { '40': 0, '41': 0, '42': 0 }, specs: {} }
+    : JSON.parse(JSON.stringify(src));
+  var status = statusMap[p.slug] || (isNew ? 'draft' : 'active');
+  var dirty = false;
+  document.title = (isNew ? 'Thêm sản phẩm' : p.name) + ' | Cadence Admin';
+
+  function slugify(s) { return CAD.norm(s).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''); }
+  function colorCode(name) { var n = CAD.norm(name).replace(/[^a-z]/g, ''); return (n.slice(0, 3) || 'xxx').toUpperCase(); }
+  function sku(cw, size) { return (p.slug || 'NEW').toUpperCase().replace(/-/g, '') + '-' + colorCode(cw.name) + '-' + size; }
+  var SIZE_ORDER = ['XS', 'S', 'M', 'L', 'XL', '35', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45'];
+  function sizes() { return SIZE_ORDER.filter(function (s) { return s in p.sizes; }); }
+
+  var CATS = ['Giày chạy bộ', 'Giày chạy địa hình', 'Giày chạy thi đấu', 'Giày lifestyle', 'Giày tập luyện', 'Áo chạy bộ', 'Áo thun', 'Áo tập', 'Áo nỉ'];
+
+  function field(id, label, input, hint) {
+    return '<div class="field"><label for="' + id + '">' + label + '</label>' + input + (hint ? '<span class="field__hint">' + hint + '</span>' : '') + '<span class="field__error" id="' + id + '-err"></span></div>';
+  }
+  function sel(id, opts, val) { return '<select class="select" id="' + id + '">' + opts.map(function (o) { return '<option value="' + o[0] + '"' + (o[0] === val ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select>'; }
+
+  function colorwayHtml(cw, i) {
+    var fam = Object.keys(CAD.colorFamilies).map(function (k) { return [k, CAD.colorFamilies[k].name]; });
+    return '<div class="cw" data-cw="' + i + '">' +
+      '<div class="cw__head">' + (p.img ? '<img src="' + CAD.img(p.img, 120) + '" alt="" width="120" height="150" decoding="async" loading="lazy">' : '<div class="cw__ph"></div>') +
+        '<div><strong>' + (ADM.esc(cw.name) || 'Phối màu mới') + '</strong><div class="sub">' + sizes().length + ' size · mã màu <span class="mono">' + colorCode(cw.name) + '</span></div></div>' +
+        (p.colors.length > 1 ? '<button class="link" type="button" data-rm-cw="' + i + '">Xoá</button>' : '') + '</div>' +
+      '<div class="cw__body">' +
+        '<div class="form-grid form-grid--2">' +
+          field('cw-name-' + i, 'Tên phối màu', '<input class="input" id="cw-name-' + i + '" data-cw-field="name" value="' + ADM.esc(cw.name) + '" placeholder="Ví dụ: Đen / Trắng">') +
+          field('cw-fam-' + i, 'Nhóm màu (dùng cho bộ lọc)', sel('cw-fam-' + i, fam, cw.family).replace('<select', '<select data-cw-field="family"')) +
+        '</div>' +
+        '<div class="table-wrap"><table class="table"><thead><tr><th class="col-sticky col-edge">Size</th><th>SKU</th><th class="hide-sm">Mã vạch (GTIN)</th><th class="num">Còn bán</th><th class="col-end">Đang bán</th></tr></thead><tbody>' +
+          sizes().map(function (s) {
+            var ats = stock[CAD.skuKey(p.slug, s)];
+            return '<tr><td class="mono col-sticky col-edge"><strong>' + s + '</strong></td><td class="mono">' + sku(cw, s) + '</td><td class="mono muted hide-sm">893' + String(Math.abs((p.slug + cw.name + s).split('').reduce(function (h, c) { return (h * 31 + c.charCodeAt(0)) | 0; }, 7))).padStart(10, '0').slice(0, 10) + '</td>' +
+              '<td class="num">' + (ats === undefined ? '—' : '<a href="inventory.html?q=' + encodeURIComponent(ADM.skuCode(p.slug, s)) + '"' + (ats <= 0 ? ' style="color:var(--danger)"' : '') + '>' + ats + '</a>') + '</td>' +
+              '<td class="col-end"><input class="switch" type="checkbox" checked aria-label="Bán size ' + s + ' màu ' + ADM.esc(cw.name) + '"></td></tr>';
+          }).join('') + '</tbody></table></div>' +
+      '</div></div>';
+  }
+
+  function render() {
+    var lockAttr = canPrice ? '' : ' disabled';
+    var url = 'cadence.vn/san-pham/' + (p.slug || 'slug-san-pham');
+    main.innerHTML =
+      '<div class="page-head"><div class="page-head__title"><a class="back" href="products.html" aria-label="Quay lại danh sách sản phẩm"><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a>' +
+        '<div><h1 class="h1">' + (isNew ? 'Thêm sản phẩm' : ADM.esc(p.name)) + '</h1>' +
+        (isNew ? '<p>Sản phẩm mới được lưu ở trạng thái nháp cho tới khi bạn chọn Đang bán.</p>' : '<p>' + ADM.esc(p.category) + ' · ' + p.colors.length + ' phối màu · ' + sizes().length + ' size</p>') + '</div></div>' +
+        (isNew ? '' : '<div class="page-head__actions"><a class="btn btn--outline btn--sm" href="../pdp.html?p=' + p.slug + '" target="_blank" rel="noopener">Xem trên cửa hàng<svg class="icon icon--sm" aria-hidden="true"><use href="#a-external"/></svg><span class="sr-only">(mở tab mới)</span></a></div>') + '</div>' +
+      '<div id="form-alert"></div>' +
+      '<div class="editor">' +
+        '<div class="stack">' +
+          '<section class="card"><h2 class="h3">Thông tin chung</h2><div class="form-grid form-grid--2">' +
+            '<div class="span-2">' + field('name', 'Tên sản phẩm', '<input class="input" id="name" value="' + ADM.esc(p.name) + '" required>') + '</div>' +
+            '<div class="span-2">' + field('slug', 'Đường dẫn (slug)', '<input class="input mono" id="slug" value="' + ADM.esc(p.slug) + '"' + (isNew ? '' : ' readonly') + '>',
+              isNew ? 'Tự tạo từ tên sản phẩm.' : 'Đổi slug của sản phẩm đang bán sẽ tạo chuyển hướng 301 từ đường dẫn cũ để giữ SEO. Prototype khoá trường này.') + '</div>' +
+            field('category', 'Danh mục', sel('category', CATS.map(function (c) { return [c, c]; }), p.category)) +
+            field('sport', 'Môn', sel('sport', Object.keys(L.sport).map(function (k) { return [k, L.sport[k]]; }), p.sport)) +
+            field('gender', 'Giới tính', sel('gender', [['nam', 'Nam'], ['nu', 'Nữ'], ['unisex', 'Unisex']], p.gender)) +
+            '<div></div>' +
+            '<div class="span-2">' + field('desc', 'Mô tả', '<textarea class="textarea" id="desc" rows="4">' + ADM.esc(p.desc) + '</textarea>') + '</div>' +
+          '</div></section>' +
+
+          '<section class="card"><div class="card__head"><h2 class="h3">Giá</h2>' + (canPrice ? '' : '<span class="lock-note">Vai trò Vận hành không được sửa giá. Đổi vai trò "Quản trị" ở thanh trên để thử.</span>') + '</div>' +
+            '<div class="form-grid form-grid--2' + (canPrice ? '' : ' locked') + '">' +
+              field('price', 'Giá niêm yết (₫, đã gồm VAT)', '<input class="input mono" id="price" inputmode="numeric" value="' + (p.price || '') + '"' + lockAttr + '>') +
+              field('sale', 'Giá khuyến mãi (₫)', '<input class="input mono" id="sale" inputmode="numeric" value="' + (p.salePrice || '') + '" placeholder="Để trống nếu không giảm"' + lockAttr + '>', 'Hiện giá gạch ngang trên cửa hàng. Đơn đã đặt giữ nguyên giá cũ (bản chụp).') +
+            '</div></section>' +
+
+          '<section class="stack stack--tight" aria-labelledby="cw-title"><div class="card__head"><h2 class="h3" id="cw-title">Phối màu & size</h2>' +
+            '<div class="card__tools"><button class="btn btn--outline btn--sm" type="button" id="add-size"><svg class="icon icon--sm" aria-hidden="true"><use href="#a-plus"/></svg>Thêm size</button><button class="btn btn--outline btn--sm" type="button" id="add-cw"><svg class="icon icon--sm" aria-hidden="true"><use href="#a-plus"/></svg>Thêm phối màu</button></div></div>' +
+            p.colors.map(colorwayHtml).join('') + '</section>' +
+        '</div>' +
+
+        '<div class="stack">' +
+          '<section class="card"><h2 class="h3">Trạng thái</h2><div role="radiogroup" aria-label="Trạng thái sản phẩm">' +
+            [['draft', 'Nháp', 'Chỉ nhân viên thấy'], ['active', 'Đang bán', 'Hiện trên cửa hàng và mua được'], ['scheduled', 'Hẹn giờ ra mắt', 'Tự chuyển sang Đang bán vào giờ đã đặt'], ['hidden', 'Đã ẩn', 'Không hiện, không mua được; đơn cũ vẫn giữ nguyên']].map(function (s) {
+              return '<label class="choice"><input type="radio" name="status" value="' + s[0] + '"' + (status === s[0] ? ' checked' : '') + '><div><div class="choice__title">' + s[1] + '</div><div class="choice__desc">' + s[2] + '</div></div><span></span></label>';
+            }).join('') + '</div>' +
+            '<div class="field" id="launch-wrap"' + (status === 'scheduled' ? '' : ' hidden') + '><label for="launch">Thời điểm ra mắt (giờ Việt Nam)</label><input class="input mono" type="datetime-local" id="launch" value="2026-12-20T10:00"></div>' +
+          '</section>' +
+          '<section class="card"><h2 class="h3">Xem trước trên Google</h2>' +
+            '<div class="serp"><span class="serp__url">' + url + '</span>' +
+            '<span class="serp__title" id="seo-title">' + ADM.esc(p.name || 'Tên sản phẩm') + ' | Cadence</span>' +
+            '<span class="serp__desc" id="seo-desc">' + ADM.esc((p.desc || 'Mô tả sản phẩm sẽ hiện ở đây.').slice(0, 155)) + '</span></div></section>' +
+          '<section class="card"><h2 class="h3">Ảnh</h2><div class="media-grid">' +
+            [p.img].concat(p.gallery || []).filter(Boolean).map(function (id) { return '<img src="' + CAD.img(id, 200) + '" alt="" width="200" height="250" decoding="async" loading="lazy">'; }).join('') +
+            '<button type="button" class="media-add" onclick="CAD.toast(\'Tải ảnh lên: tính năng của bản thật\')"><svg class="icon icon--md" aria-hidden="true"><use href="#a-image"/></svg>Thêm ảnh</button></div>' +
+            '<p class="field__hint">Ảnh gắn theo từng phối màu. Prototype dùng chung ảnh cho mọi phối màu.</p></section>' +
+        '</div>' +
+      '</div>' +
+      '<div class="sticky-save"><span class="dirty-note' + (dirty ? ' is-dirty' : '') + '" id="dirty-note" aria-live="polite">' + (dirty ? 'Có thay đổi chưa lưu' : isNew ? 'Sản phẩm mới chưa lưu' : 'Không có thay đổi') + '</span><a class="btn btn--outline" href="products.html">Huỷ</a><button class="btn" type="button" id="save">Lưu sản phẩm</button></div>';
+  }
+
+  function collect() {
+    p.name = $('#name').value.trim();
+    if (isNew) p.slug = $('#slug').value.trim() || slugify(p.name);
+    p.category = $('#category').value; p.sport = $('#sport').value; p.gender = $('#gender').value; p.desc = $('#desc').value.trim();
+    p.price = parseInt(($('#price').value || '0').replace(/\D/g, ''), 10) || 0;
+    var s = parseInt(($('#sale').value || '').replace(/\D/g, ''), 10); p.salePrice = s || null;
+    $$('[data-cw]').forEach(function (el) {
+      var i = +el.getAttribute('data-cw');
+      p.colors[i].name = $('[data-cw-field="name"]', el).value.trim();
+      p.colors[i].family = $('[data-cw-field="family"]', el).value;
+    });
+    status = ($('input[name=status]:checked') || {}).value || 'draft';
+  }
+
+  function err(id, msg) { var f = $('#' + id).closest('.field'); f.classList.toggle('is-invalid', !!msg); $('#' + id + '-err').textContent = msg || ''; return !msg; }
+  function validate() {
+    var ok = true;
+    ok = err('name', p.name.length < 3 ? 'Tên cần ít nhất 3 ký tự.' : '') && ok;
+    ok = err('price', p.price < 10000 ? 'Nhập giá niêm yết hợp lệ.' : '') && ok;
+    ok = err('sale', p.salePrice && p.salePrice >= p.price ? 'Giá khuyến mãi phải thấp hơn giá niêm yết.' : '') && ok;
+    p.colors.forEach(function (c, i) { ok = err('cw-name-' + i, c.name ? '' : 'Nhập tên phối màu.') && ok; });
+    return ok;
+  }
+
+  main.addEventListener('input', function (e) {
+    dirty = true; $('#dirty-note').textContent = 'Có thay đổi chưa lưu'; $('#dirty-note').classList.add('is-dirty');
+    if (e.target.id === 'name') { $('#seo-title').textContent = (e.target.value || 'Tên sản phẩm') + ' | Cadence'; if (isNew) $('#slug').value = slugify(e.target.value); }
+    if (e.target.id === 'desc') $('#seo-desc').textContent = e.target.value.slice(0, 155);
+  });
+  main.addEventListener('change', function (e) {
+    if (e.target.name === 'status') $('#launch-wrap').hidden = e.target.value !== 'scheduled';
+  });
+  main.addEventListener('click', function (e) {
+    if (e.target.closest('#add-cw')) { collect(); p.colors.push({ name: '', family: 'black' }); dirty = true; render(); $('#cw-name-' + (p.colors.length - 1)).focus(); }
+    if (e.target.closest('#add-size')) {
+      var next = SIZE_ORDER.filter(function (s) { return !(s in p.sizes) && (p.type === 'apparel' ? isNaN(s) : !isNaN(s)); })[0];
+      if (!next) { CAD.toast('Đã đủ các size'); return; }
+      collect(); p.sizes[next] = 0; dirty = true; render(); CAD.toast('Đã thêm size ' + next + ' cho mọi phối màu');
+    }
+    var rm = e.target.closest('[data-rm-cw]');
+    if (rm) { collect(); p.colors.splice(+rm.getAttribute('data-rm-cw'), 1); dirty = true; render(); }
+    if (e.target.closest('#save')) {
+      collect();
+      if (!validate()) { var f = $('.is-invalid input, .is-invalid select'); if (f) f.focus(); $('#form-alert').innerHTML = '<div class="notice notice--error" role="alert"><strong>Chưa lưu được</strong><span>Sửa các ô bị đánh dấu đỏ.</span></div>'; return; }
+      $('#form-alert').innerHTML = '';
+      var meta = CAD.store.get('cad-product-meta-v3', {});
+      meta[p.slug] = { name: p.name, price: p.price, salePrice: p.salePrice, desc: p.desc };
+      CAD.store.set('cad-product-meta-v3', meta);
+      statusMap[p.slug] = status; CAD.store.set('cad-product-status-v3', statusMap);
+      dirty = false; $('#dirty-note').textContent = 'Đã lưu ' + ADM.when(Date.now()); $('#dirty-note').classList.remove('is-dirty');
+      CAD.toast(isNew ? 'Đã lưu nháp (prototype: sản phẩm mới chưa hiện ra cửa hàng)' : 'Đã lưu. Tên và giá mới đã áp dụng ra cửa hàng.');
+    }
+  });
+  window.addEventListener('beforeunload', function (e) { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
+
+  render();
+})();
+</script>
+</body>
+</html>

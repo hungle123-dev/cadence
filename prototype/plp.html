@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sản phẩm | Cadence</title>
+  <meta name="description" content="Giày chạy bộ, giày trail, giày lifestyle và quần áo thể thao Cadence. Lọc theo size còn hàng, màu, giá.">
+  <meta name="theme-color" content="#111111">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://images.unsplash.com">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,800&family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/tokens.css?v=20261117-10">
+  <link rel="stylesheet" href="assets/css/styles.css?v=20261117-10">
+</head>
+<body>
+<script src="assets/js/sprite.js?v=20261117-10"></script>
+<script src="assets/js/layout.js?v=20261117-10" data-part="header"></script>
+
+<main id="main">
+  <div class="container">
+    <nav class="crumbs" aria-label="Breadcrumb">
+      <a href="index.html">Trang chủ</a><span aria-hidden="true">/</span><span id="crumb-current" aria-current="page">Tất cả sản phẩm</span>
+    </nav>
+  </div>
+
+  <div class="plp-bar">
+    <div class="container plp-bar__inner">
+      <h1 class="h1"><span id="plp-title">Tất cả sản phẩm</span> <span class="count" id="plp-count" aria-live="polite"></span></h1>
+      <div class="plp-bar__tools">
+        <button class="toolbar__btn" type="button" id="filter-toggle" aria-controls="filters" aria-expanded="true">
+          <span id="filter-toggle-label">Ẩn bộ lọc</span><span class="badge-n" id="filter-n" hidden>0</span><svg class="icon" aria-hidden="true"><use href="#i-filter"/></svg>
+        </button>
+        <label class="sort"><span class="sort__label">Sắp xếp<span class="sr-only"> theo</span></span>
+          <select id="sort">
+            <option value="featured">Nổi bật</option>
+            <option value="new">Mới nhất</option>
+            <option value="price-asc">Giá thấp đến cao</option>
+            <option value="price-desc">Giá cao đến thấp</option>
+            <option value="rating">Đánh giá cao</option>
+          </select>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="chips" id="chips" aria-label="Bộ lọc đang áp dụng"></div>
+    <div class="plp" id="plp">
+      <aside class="filters" id="filters" aria-label="Bộ lọc">
+        <div class="filters__head">
+          <h2 class="h3">Bộ lọc</h2>
+          <button class="icon-btn" type="button" data-filters-close aria-label="Đóng bộ lọc"><svg class="icon"><use href="#i-x"/></svg></button>
+        </div>
+        <div class="filters__body" id="filters-body"></div>
+        <div class="filters__foot">
+          <button class="btn btn--outline" type="button" data-clear>Xoá</button>
+          <button class="btn" type="button" data-filters-close id="apply-btn">Xem kết quả</button>
+        </div>
+      </aside>
+
+      <section aria-labelledby="plp-title">
+        <h2 class="sr-only">Danh sách sản phẩm</h2>
+        <div class="grid" id="results"></div>
+        <div class="empty" id="empty" hidden>
+          <h2 class="h2">Không có sản phẩm phù hợp</h2>
+          <p class="muted">Thử bỏ bớt bộ lọc, hoặc chọn size khác. Size bạn cần có thể đang hết hàng ở mẫu này.</p>
+          <button class="btn" type="button" data-clear>Xoá tất cả bộ lọc</button>
+        </div>
+        <div class="load-more" id="load-more" hidden>
+          <p class="label muted" id="load-more-text"></p>
+          <div class="load-more__bar"><span id="load-more-bar"></span></div>
+          <button class="btn btn--outline" type="button" id="load-more-btn">Xem thêm</button>
+        </div>
+      </section>
+    </div>
+  </div>
+</main>
+
+<script>CAD.layout('footer')</script>
+<script src="assets/js/data.js?v=20261117-10"></script>
+<script src="assets/js/app.js?v=20261117-10"></script>
+<script src="assets/js/plp.js?v=20261117-10"></script>
+</body>
+</html>

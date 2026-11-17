@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tra cứu đơn hàng | Cadence</title>
+  <meta name="description" content="Tra cứu và theo dõi đơn hàng Cadence bằng mã đơn và số điện thoại hoặc email, không cần đăng nhập.">
+  <meta name="theme-color" content="#111111">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://images.unsplash.com">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,800&family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/tokens.css?v=20261117-10">
+  <link rel="stylesheet" href="assets/css/styles.css?v=20261117-10">
+  <link rel="stylesheet" href="assets/css/commerce.css?v=20261117-10">
+</head>
+<body>
+<script src="assets/js/sprite.js?v=20261117-10"></script>
+<script src="assets/js/layout.js?v=20261117-10" data-part="header"></script>
+
+<div class="demo-bar" role="note" id="demo-bar" hidden>
+  <div class="container demo-bar__inner" id="demo-links"><strong>Prototype</strong><span class="muted">Mô phỏng tiến trình đơn:</span></div>
+</div>
+
+<main id="main" class="container">
+  <div class="page-pad">
+    <section id="lookup" class="lookup" aria-labelledby="lk-title">
+      <h1 class="h1" id="lk-title">Tra cứu đơn hàng</h1>
+      <p class="lookup__intro">Nhập mã đơn trong email xác nhận và số điện thoại hoặc email đã dùng khi đặt hàng. Không cần đăng nhập.</p>
+      <form id="lookup-form" class="form-grid" novalidate>
+        <div id="lk-alert"></div>
+        <div class="field"><label for="lk-number">Mã đơn hàng<span class="req" aria-hidden="true">*</span></label>
+          <input class="input" id="lk-number" placeholder="Ví dụ: CAD-261116-1234" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-describedby="lk-number-err" required>
+          <span class="field__error" id="lk-number-err">Mã đơn có dạng CAD-YYMMDD-XXXX, ví dụ CAD-261116-1234.</span></div>
+        <div class="field"><label for="lk-contact">Số điện thoại hoặc email<span class="req" aria-hidden="true">*</span></label>
+          <input class="input" id="lk-contact" autocomplete="email" aria-describedby="lk-contact-err" required>
+          <span class="field__error" id="lk-contact-err">Nhập số điện thoại hoặc email đã dùng khi đặt hàng.</span></div>
+        <button class="btn btn--lg btn--block" type="submit">Tra cứu đơn hàng</button>
+      </form>
+      <div class="recent" id="recent"></div>
+      <p class="lookup__alt">Có tài khoản Cadence Club? <a class="link" href="account.html#orders">Xem tất cả đơn trong tài khoản</a></p>
+    </section>
+
+    <section id="detail" hidden aria-live="polite"></section>
+  </div>
+</main>
+
+<script>CAD.layout('footer')</script>
+<script src="assets/js/data.js?v=20261117-10"></script>
+<script src="assets/js/commerce.js?v=20261117-10"></script>
+<script src="assets/js/app.js?v=20261117-10"></script>
+<script src="assets/js/orders.js?v=20261117-10"></script>
+<script>
+(function () {
+  var $ = function (s) { return document.querySelector(s); };
+  var q = new URLSearchParams(location.search);
+  var current = null;
+
+  /* Prototype: liệt kê đơn đã đặt trên thiết bị này để thử nhanh */
+  var mine = CAD.store.get('cad-orders', []);
+  if (mine.length) {
+    $('#recent').innerHTML = '<span class="recent__title"><b>Prototype</b>Đơn đã đặt trên thiết bị này, bấm để điền nhanh</span><div class="recent__list">' + mine.slice(0, 4).map(function (o) {
+      return '<button type="button" data-fill="' + o.number + '">' + o.number + ' · ' + o.contact.phone + '</button>';
+    }).join('') + '</div>';
+  }
+  $('#recent').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-fill]'); if (!b) return;
+    var o = CAD.getOrder(b.getAttribute('data-fill'));
+    $('#lk-number').value = o.number; $('#lk-contact').value = o.contact.phone;
+    $('#lookup-form').requestSubmit();
+  });
+
+  if (q.get('order')) { $('#lk-number').value = q.get('order'); $('#lk-contact').focus(); }
+
+  function norm(s) { return (s || '').trim().toLowerCase().replace(/[\s.]/g, ''); }
+
+  $('#lookup-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var num = $('#lk-number').value.trim().toUpperCase(), contact = $('#lk-contact').value;
+    var okNum = /^CAD-\d{6}-\d{4}$/.test(num), okContact = norm(contact).length >= 6;
+    $('#lk-number').closest('.field').classList.toggle('is-invalid', !okNum);
+    $('#lk-contact').closest('.field').classList.toggle('is-invalid', !okContact);
+    $('#lk-number').setAttribute('aria-invalid', !okNum);
+    $('#lk-contact').setAttribute('aria-invalid', !okContact);
+    if (!okNum) { $('#lk-number').focus(); return; }
+    if (!okContact) { $('#lk-contact').focus(); return; }
+    var o = CAD.getOrder(num);
+    /* Thông báo chung chung: không tiết lộ mã đơn có tồn tại hay không (tránh dò đơn người khác) */
+    if (!o || (norm(o.contact.phone) !== norm(contact) && norm(o.contact.email) !== norm(contact))) {
+      $('#lk-alert').innerHTML = '<div class="notice notice--error" role="alert"><strong>Không tìm thấy đơn hàng</strong><span>Kiểm tra lại mã đơn và số điện thoại hoặc email. Nếu vẫn không được, hãy chat với chúng tôi.</span></div>';
+      return;
+    }
+    $('#lk-alert').innerHTML = '';
+    show(o);
+  });
+
+  function show(o) {
+    current = o;
+    $('#lookup').hidden = true;
+    $('#detail').hidden = false;
+    $('#detail').innerHTML = '<div style="display:grid;gap:16px">' + CAD.backLink('Tra cứu đơn khác', { id: 'back' }) + CAD.orderDetailHtml(o) + '</div>';
+    document.title = 'Đơn ' + o.number + ' | Cadence';
+    history.replaceState(null, '', 'order-lookup.html?order=' + o.number);
+    renderDemo();
+  }
+
+  $('#detail').addEventListener('click', function (e) {
+    if (e.target.closest('#back')) { $('#detail').hidden = true; $('#lookup').hidden = false; $('#demo-bar').hidden = true; current = null; return; }
+    var b = e.target.closest('[data-order-act]'); if (!b) return;
+    var act = b.getAttribute('data-order-act');
+    if (act === 'cancel') CAD.cancelDialog(current, function () { show(current); CAD.toast('Đã huỷ đơn ' + current.number); });
+    if (act === 'return') CAD.toast('Luồng đổi size / trả hàng thuộc giai đoạn 2 của dự án.');
+  });
+
+  /* Prototype: đẩy đơn qua các bước xử lý của kho và vận chuyển */
+  function renderDemo() {
+    var o = current, ful = o.fulfillment || 'UNFULFILLED', links = [];
+    if (o.status === 'CANCELLED') { $('#demo-bar').hidden = true; return; }
+    if (o.status === 'PENDING_CONFIRMATION') links.push(['confirm', 'CSKH xác nhận đơn']);
+    if (o.status === 'PLACED' && ful === 'UNFULFILLED') links.push(['pack', 'Kho đóng gói']);
+    if (ful === 'PACKED') links.push(['ship', 'Giao cho vận chuyển']);
+    if (ful === 'SHIPPED') links.push(['deliver', 'Giao thành công']);
+    var wrap = $('#demo-links');
+    wrap.querySelectorAll('button').forEach(function (b) { b.remove(); });
+    links.forEach(function (l) { wrap.insertAdjacentHTML('beforeend', '<button class="link" type="button" data-step="' + l[0] + '">' + l[1] + '</button>'); });
+    $('#demo-bar').hidden = !links.length;
+  }
+  $('#demo-links').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-step]'); if (!b) return;
+    var o = current, step = b.getAttribute('data-step');
+    if (step === 'confirm') { o.status = 'PLACED'; CAD.orderEvent(o, 'Đã xác nhận đơn qua điện thoại'); }
+    if (step === 'pack') { o.fulfillment = 'PACKED'; CAD.orderEvent(o, 'Kho đã đóng gói'); }
+    if (step === 'ship') { o.fulfillment = 'SHIPPED'; o.tracking = 'VN' + Math.floor(1e9 + Math.random() * 9e9); CAD.orderEvent(o, 'Đã giao cho đơn vị vận chuyển'); }
+    if (step === 'deliver') {
+      o.fulfillment = 'DELIVERED';
+      if (o.payment.method === 'cod') { o.payment.status = 'PAID'; CAD.orderEvent(o, 'Đã giao · shipper đã thu ' + CAD.formatPrice(o.totals.total)); }
+      else CAD.orderEvent(o, 'Đã giao');
+    }
+    CAD.saveOrder(o); show(o);
+  });
+
+  if (q.get('order') && q.get('contact')) { $('#lk-contact').value = q.get('contact'); $('#lookup-form').requestSubmit(); }
+})();
+</script>
+</body>
+</html>

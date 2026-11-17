@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Đơn hàng | Cadence Admin</title>
+  <meta name="robots" content="noindex">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,800&family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/tokens.css?v=20261117-10">
+  <link rel="stylesheet" href="../assets/css/styles.css?v=20261117-10">
+  <link rel="stylesheet" href="../assets/css/commerce.css?v=20261117-10">
+  <link rel="stylesheet" href="admin.css?v=20261117-10">
+</head>
+<body class="admin">
+<script src="../assets/js/sprite.js?v=20261117-10"></script>
+<script src="../assets/js/data.js?v=20261117-10"></script>
+<script src="../assets/js/app.js?v=20261117-10"></script>
+<script src="admin.js?v=20261117-10"></script>
+<script>
+(function () {
+  var main = ADM.shell('orders');
+  var $ = function (s) { return document.querySelector(s); };
+  var q = new URLSearchParams(location.search);
+  var TABS = [
+    ['all', 'Tất cả', function () { return true; }],
+    ['confirm', 'Chờ xác nhận', function (o) { return o.status === 'PENDING_CONFIRMATION'; }],
+    ['pack', 'Chờ đóng gói', function (o) { return o.status === 'PLACED' && o.fulfillment === 'UNFULFILLED'; }],
+    ['packed', 'Đã đóng gói', function (o) { return o.status === 'PLACED' && o.fulfillment === 'PACKED'; }],
+    ['shipping', 'Đang giao', function (o) { return o.fulfillment === 'SHIPPED'; }],
+    ['payment', 'Thanh toán cần xử lý', function (o) { return o.status === 'PENDING_PAYMENT'; }],
+    ['done', 'Đã giao', function (o) { return o.fulfillment === 'DELIVERED'; }],
+    ['cancelled', 'Đã huỷ', function (o) { return o.status === 'CANCELLED'; }]
+  ];
+  var tab = q.get('tab') || 'all', search = q.get('q') || '', method = q.get('method') || '';
+  var selected = [];
+
+  main.innerHTML =
+    '<div class="page-head"><div><h1 class="h1">Đơn hàng</h1><p>Mỗi đơn có 3 trục trạng thái độc lập: đơn hàng, thanh toán, giao hàng.</p></div></div>' +
+    '<section class="card card--flush" aria-label="Danh sách đơn hàng">' +
+    '<div class="tabs-admin" role="tablist" id="tabs" aria-label="Lọc theo trạng thái"></div>' +
+    '<div class="filters-row">' +
+      '<label class="field adm-search grow"><span class="sr-only">Tìm đơn</span><svg class="icon icon--sm" aria-hidden="true"><use href="#i-search"/></svg><input class="input" id="q" type="search" placeholder="Mã đơn, số điện thoại, tên khách" value="' + ADM.esc(search) + '"></label>' +
+      '<label><span class="sr-only">Phương thức thanh toán</span><select class="select" id="method"><option value="">Mọi phương thức</option><option value="cod">COD</option><option value="vnpay">VNPay</option></select></label>' +
+      '<span class="count" id="count" aria-live="polite"></span>' +
+    '</div>' +
+    '<div id="bulk"></div>' +
+    '<div class="table-wrap"><table class="table table--list table--orders"><thead><tr>' +
+      '<th class="col-check col-sticky"><label class="cb-hit"><input type="checkbox" id="check-all" aria-label="Chọn tất cả đơn đang hiển thị"><span class="cb-all-label" aria-hidden="true">Chọn tất cả</span></label></th>' +
+      '<th class="col-sticky col-edge">Mã đơn</th><th>Thời gian</th><th>Khách hàng</th><th class="num">SL</th><th>Đơn hàng</th><th>Thanh toán</th><th>Giao hàng</th><th class="num">Tổng tiền</th>' +
+    '</tr></thead><tbody id="rows"></tbody></table></div>' +
+    '</section>';
+  $('#method').value = method;
+
+  function list() {
+    var all = ADM.orders();
+    var s = CAD.norm(search);
+    return all.filter(function (o) {
+      if (method && o.payment.method !== method) return false;
+      if (s && CAD.norm(o.number + ' ' + o.contact.phone + ' ' + o.address.name + ' ' + o.contact.email).indexOf(s) < 0) return false;
+      return true;
+    });
+  }
+  function render() {
+    var base = list();
+    $('#tabs').innerHTML = TABS.map(function (t) {
+      var n = base.filter(t[2]).length;
+      return '<button type="button" role="tab" data-tab="' + t[0] + '" aria-selected="' + (t[0] === tab) + '">' + t[1] + '<span class="n">' + n + '</span></button>';
+    }).join('');
+    var rows = base.filter(TABS.filter(function (t) { return t[0] === tab; })[0][2]);
+    selected = selected.filter(function (n) { return rows.some(function (o) { return o.number === n; }); });
+    $('#count').textContent = rows.length + ' đơn';
+    $('#rows').innerHTML = rows.length ? rows.map(function (o) {
+      var items = o.lines.reduce(function (s, l) { return s + l.qty; }, 0);
+      var flag = ADM.isStalePayment(o) ? '<span class="pill pill--bad" title="Chưa nhận IPN sau 15 phút">Cần đối soát</span>' : '';
+      return '<tr class="is-link" data-href="order.html?n=' + o.number + '">' +
+        '<td class="col-check col-sticky"><label class="cb-hit"><input type="checkbox" data-select="' + o.number + '" aria-label="Chọn đơn ' + o.number + '"' + (selected.indexOf(o.number) > -1 ? ' checked' : '') + '></label></td>' +
+        '<td class="mono col-primary col-sticky col-edge"><a href="order.html?n=' + o.number + '">' + o.number + '</a></td>' +
+        '<td class="mono col-time">' + ADM.when(o.createdAt) + '</td>' +
+        '<td class="col-cust">' + ADM.esc(o.address.name) + '<span class="sub mono">' + o.contact.phone + '</span></td>' +
+        '<td class="num m-hide">' + items + '</td>' +
+        '<td class="col-badge">' + ADM.pill('order', o.status) + '</td><td class="col-badge"><span class="pills">' + ADM.pill('pay', o.payment.status) + flag + '</span></td><td class="col-badge">' + ADM.pill('ful', o.fulfillment || 'UNFULFILLED') + '</td>' +
+        '<td class="num col-total">' + CAD.formatPrice(o.totals.total) + '</td></tr>';
+    }).join('') : '<tr><td colspan="9" class="table-empty">Không có đơn nào khớp với bộ lọc. <button class="link" type="button" data-reset>Xoá bộ lọc</button></td></tr>';
+    $('#check-all').checked = rows.length > 0 && selected.length === rows.length;
+    renderBulk();
+    var p = new URLSearchParams();
+    if (tab !== 'all') p.set('tab', tab); if (search) p.set('q', search); if (method) p.set('method', method);
+    history.replaceState(null, '', 'orders.html' + (p.toString() ? '?' + p : ''));
+  }
+  function renderBulk() {
+    if (!selected.length) { $('#bulk').innerHTML = ''; return; }
+    var acts = '';
+    if (tab === 'confirm') acts = '<button class="btn btn--sm" type="button" data-bulk="confirm">Xác nhận ' + selected.length + ' đơn</button>';
+    if (tab === 'pack') acts = '<button class="btn btn--sm" type="button" data-bulk="pack">Đánh dấu đã đóng gói</button>';
+    $('#bulk').innerHTML = '<div class="bulk" role="region" aria-label="Thao tác hàng loạt"><span class="bulk__count">Đã chọn ' + selected.length + ' đơn</span>' + (acts || '<span class="bulk__hint">Chọn tab "Chờ xác nhận" hoặc "Chờ đóng gói" để thao tác hàng loạt</span>') +
+      '<button class="link bulk__clear" type="button" data-bulk="clear">Bỏ chọn</button></div>';
+  }
+
+  main.addEventListener('click', function (e) {
+    var t = e.target.closest('[data-tab]');
+    if (t) { tab = t.getAttribute('data-tab'); selected = []; render(); return; }
+    var b = e.target.closest('[data-bulk]');
+    if (b) {
+      var act = b.getAttribute('data-bulk');
+      if (act === 'clear') { selected = []; render(); return; }
+      selected.forEach(function (n) {
+        var o = ADM.order(n);
+        if (act === 'confirm' && o.status === 'PENDING_CONFIRMATION') { o.status = 'PLACED'; ADM.event(o, 'Đã xác nhận đơn (thao tác hàng loạt)'); }
+        if (act === 'pack' && o.status === 'PLACED' && o.fulfillment === 'UNFULFILLED') { o.fulfillment = 'PACKED'; ADM.event(o, 'Kho đã đóng gói (thao tác hàng loạt)'); }
+        ADM.saveOrder(o);
+      });
+      CAD.toast('Đã cập nhật ' + selected.length + ' đơn'); selected = []; render(); return;
+    }
+    if (e.target.closest('[data-reset]')) { tab = 'all'; search = ''; method = ''; $('#q').value = ''; $('#method').value = ''; render(); return; }
+    if (e.target.closest('.col-check, a, input, button')) return;
+    var tr = e.target.closest('tr[data-href]');
+    if (tr) location.href = tr.getAttribute('data-href');
+  });
+  main.addEventListener('change', function (e) {
+    if (e.target.id === 'method') { method = e.target.value; render(); }
+    if (e.target.id === 'check-all') {
+      selected = e.target.checked ? Array.prototype.map.call(document.querySelectorAll('[data-select]'), function (c) { return c.getAttribute('data-select'); }) : [];
+      render();
+    }
+    if (e.target.hasAttribute('data-select')) {
+      var n = e.target.getAttribute('data-select');
+      if (e.target.checked) selected.push(n); else selected = selected.filter(function (x) { return x !== n; });
+      $('#check-all').checked = selected.length === document.querySelectorAll('[data-select]').length; renderBulk();
+    }
+  });
+  var timer;
+  $('#q').addEventListener('input', function () { clearTimeout(timer); var v = this.value; timer = setTimeout(function () { search = v.trim(); render(); }, 150); });
+  if (search) document.getElementById('top-q').value = search;
+  render();
+})();
+</script>
+</body>
+</html>
