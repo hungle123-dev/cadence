@@ -1,0 +1,14 @@
+# Mọi file văn bản lưu trong repo bằng LF (kiểu xuống dòng của Linux)
+* text=auto eol=lf
+
+# Script chỉ chạy trên Windows giữ CRLF
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+# File nhị phân: không bao giờ đụng vào
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.webp binary
+*.ico  binary
+*.woff2 binary
