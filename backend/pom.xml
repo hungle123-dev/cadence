@@ -30,6 +30,7 @@
 		<java.version>25</java.version>
 		<!-- N10: tests run in UTC too (Surefire forks its own JVM, so main() is not involved) -->
 		<argLine>-Duser.timezone=UTC</argLine>
+		<archunit.version>1.5.1</archunit.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -100,6 +101,12 @@
 		<dependency>
 			<groupId>org.testcontainers</groupId>
 			<artifactId>testcontainers-postgresql</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.tngtech.archunit</groupId>
+			<artifactId>archunit-junit5</artifactId>
+			<version>${archunit.version}</version>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
