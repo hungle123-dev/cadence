@@ -13,3 +13,10 @@ spring:
     locations: classpath:db/migration,classpath:db/seed
     user: cadence_migrator # Flyway = thủ kho: được tạo/sửa bảng
     password: ${CADENCE_MIGRATOR_PASSWORD}
+
+logging:
+  structured:
+    format:
+      console: "" # máy cá nhân: log dạng chữ cho dễ đọc
+  pattern:
+    correlation: "[%X{correlationId:-}] " # thêm mã vào đầu mỗi dòng log chữ

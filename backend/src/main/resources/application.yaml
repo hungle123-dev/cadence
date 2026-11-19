@@ -8,9 +8,26 @@ spring:
   flyway:
     locations: classpath:db/migration
     default-schema: flyway # bảng lịch sử của Flyway nằm trong phòng riêng "flyway"
+  mvc:
+    problemdetails:
+      enabled: true
 
 server:
   port: ${SERVER_PORT:8080}
   servlet:
     # Mọi API (kể cả actuator) nằm dưới /api, khớp với Caddy chuyển /api/* vào backend (ADR-0006)
     context-path: /api
+
+management:
+  endpoint:
+    health:
+      probes:
+        enabled: true # bật /health/liveness và /health/readiness
+      group:
+        readiness:
+          include: readinessState,db # sẵn sàng = ứng dụng đã khởi động xong + database kết nối được
+
+logging:
+  structured:
+    format:
+      console: ecs # log dạng JSON (chuẩn ECS) cho server; MDC tự thành field "correlationId"
