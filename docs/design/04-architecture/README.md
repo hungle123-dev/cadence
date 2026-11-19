@@ -117,6 +117,7 @@ sequenceDiagram
 | [0013](adr/0013-no-redis-or-broker-in-phase-1.md) | GĐ1 không Redis, không message broker; PostgreSQL làm cả hàng đợi; ghi sẵn khi nào thêm | Đã chấp nhận | N3, N5 |
 | [0014](adr/0014-single-db-user-schema-boundary-by-tests.md) | Một DB user cho ứng dụng, ranh giới schema ép bằng test; thay một phần ADR-0001 (phát hiện ở bước 5) | Đã chấp nhận | ADR-0001 vs ADR-0002 |
 | [0015](adr/0015-iam-in-house-spring-security.md) | IAM tự làm bằng Spring Security, port `CurrentUser`, kiểm quyền không kiểm vai trò; điều kiện chuyển sang Keycloak | Đã chấp nhận | CUS-01…05, N5 |
+| [0016](adr/0016-frontend-nextjs-tailwind-cache-components.md) | Frontend: Next.js 16 + Tailwind; Cache Components bật (dữ liệu động trong Suspense, build không cần backend); React Compiler chưa bật | Đã chấp nhận | S7, G7, N3 |
 
 ## 4.6 Lộ trình DevOps (bạn tự làm, học theo dự án)
 

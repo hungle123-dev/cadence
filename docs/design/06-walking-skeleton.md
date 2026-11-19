@@ -77,7 +77,7 @@ Làm theo thứ tự. Cột "Trạng thái" cập nhật khi review xong.
 | S4 | PostgreSQL local + Flyway | Migration tạo schema `catalog`, bảng `categories`; seed vài dòng chỉ ở profile local; ứng dụng kết nối bằng `cadence_app` | 5.1, 5.5, 5.10, ADR-0014 | ✅ |
 | S5 | Lát mỏng qua hexagon: liệt kê category | `GET /api/catalog/categories` trả JSON; có test domain, test use case, test tích hợp Testcontainers | Template mục 6, ADR-0011 | ✅ |
 | S6 | Nền xuyên suốt | Lỗi trả Problem Details; log JSON có `correlationId`; health liveness/readiness | ADR-0006, ADR-0010 | ✅ |
-| S7 | Frontend tối thiểu | Trang `/` render phía server, gọi API, hiện danh sách category | ADR-0006 | ⚪ |
+| S7 | Frontend tối thiểu | Trang `/` render phía server, gọi API, hiện danh sách category | ADR-0006 | ✅ |
 | S8 | **D1** Dockerfile cho backend và frontend | Multi-stage, chạy bằng user không phải root, image backend dưới ~300 MB | ADR-0008 | ⚪ |
 | S9 | **D2** Docker Compose local | Một lệnh `docker compose up` chạy Postgres + API + Web + Caddy; mở `http://localhost` thấy trang | ADR-0008 | ⚪ |
 | S10 | **D3** CI | Pull request chạy build, test (cả Testcontainers), lint/build frontend; bật branch protection cho `main` | ADR-0009 | ⚪ |

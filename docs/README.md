@@ -9,7 +9,7 @@ Website bán hàng trực tiếp (D2C) giày và quần áo thể thao, thị tr
 | 1 | [Phạm vi](design/01-scope.md) | ✅ Đã chốt | 2026-11-16 |
 | 2 | [Thiết kế chiến lược](design/02-strategic-design.md): Event Storming, context map, BC canvas | ✅ Đã chốt | 2026-11-17 |
 | 3 | [Thiết kế chiến thuật](design/03-tactical-design/README.md): aggregate, bất biến, state machine, use case | ✅ Đã chốt | 2026-11-17 |
-| 4 | [Kiến trúc và ADR](design/04-architecture/README.md): sơ đồ C4, 15 ADR, lộ trình DevOps | ✅ Đã chốt | 2026-11-17 |
+| 4 | [Kiến trúc và ADR](design/04-architecture/README.md): sơ đồ C4, 16 ADR, lộ trình DevOps | ✅ Đã chốt | 2026-11-17 |
 | 5 | [Thiết kế database](design/05-database/README.md): schema theo module, bảng + cột + lý do, index, ràng buộc | ✅ Đã chốt | 2026-11-17 |
 | 6 | [Walking skeleton](design/06-walking-skeleton.md): 13 nhiệm vụ S1–S13, bạn tự làm, Claude review | 🔵 Đang làm | 2026-11-17 |
 
@@ -108,3 +108,4 @@ Lưu ý: `P1…` ở bước 2 là policy, `P1…` ở bước 3 là bất biế
 | 2026-11-17 | 05-database, 04-architecture, 03-tactical-design | Chốt bước 5; ADR-0014, ADR-0015 chuyển sang "Đã chấp nhận"; chốt ma trận quyền 3.10 |
 | 2026-11-17 | 06-walking-skeleton | Viết kế hoạch bước 6: định nghĩa xong, phiên bản, cấu trúc repo, 13 nhiệm vụ S1–S13 (bạn tự làm, Claude hướng dẫn và review), thứ tự các lát dọc |
 | 2026-11-17 | 04-architecture, 05-database | Cập nhật phiên bản: Java 25, Spring Boot 4.1 (bản 3.x hết hỗ trợ miễn phí 30/06/2026), Maven, PostgreSQL 18 |
+| 2026-11-19 | 04-architecture | Thêm ADR-0016: frontend dùng Next.js 16 + Tailwind, Cache Components bật, React Compiler chưa bật (quyết ở S7) |
