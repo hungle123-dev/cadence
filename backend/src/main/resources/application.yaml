@@ -1,8 +1,16 @@
 spring:
   application:
     name: cadence
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate # Hibernate chỉ kiểm tra bảng, không bao giờ tự sửa (ADR-0011)
+  flyway:
+    locations: classpath:db/migration
+    default-schema: flyway # bảng lịch sử của Flyway nằm trong phòng riêng "flyway"
 
 server:
+  port: ${SERVER_PORT:8080}
   servlet:
     # Mọi API (kể cả actuator) nằm dưới /api, khớp với Caddy chuyển /api/* vào backend (ADR-0006)
     context-path: /api

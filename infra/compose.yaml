@@ -1,0 +1,25 @@
+# Postgres cho máy cá nhân. Mọi giá trị đọc từ .env cùng thư mục (mẫu: .env.example).
+#   docker compose -f infra/compose.yaml up -d       bật (tạo 2 tài khoản ở lần đầu)
+#   docker compose -f infra/compose.yaml stop        tắt, giữ dữ liệu
+#   docker compose -f infra/compose.yaml down -v     xoá cả dữ liệu, làm lại từ đầu
+
+services:
+  postgres:
+    image: postgres:18 # đúng phiên bản đã chọn, không dùng "latest"
+    restart: unless-stopped # tự bật lại khi Docker Desktop khởi động
+    env_file: .env # đưa mật khẩu vào hộp cho db/init/01-roles.sh
+    environment:
+      POSTGRES_DB: ${DB_NAME:-cadence}
+    ports:
+      - "${DB_PORT:-5432}:5432" # cổng trên máy bạn : cổng trong hộp
+    volumes:
+      - pgdata:/var/lib/postgresql # dữ liệu nằm ngoài hộp, tắt hộp không mất
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata:
