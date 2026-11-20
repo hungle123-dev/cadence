@@ -20,6 +20,8 @@ S7 dựng frontend tối thiểu bằng `create-next-app` (Next.js 16.4). Cần 
 - **Gọi backend chỉ từ phía server của Next.js**, qua biến `API_BASE_URL` (không có tiền tố `NEXT_PUBLIC_`), nên địa chỉ backend không lộ ra trình duyệt và không vướng CORS.
 - **Không dùng tính năng `experimental`** trong `next.config.ts` nếu không có lý do ghi rõ. `experimental.agentFeedback` do create-next-app thêm đã được gỡ.
 - `partialPrefetching` (mặc định của bản mới, chỉ hoạt động cùng Cache Components) được giữ.
+- **Tổ chức thư mục:** trang khách nằm trong route group `src/app/(storefront)/` (không xuất hiện trong URL), trang quản trị nằm trong `src/app/admin/` (đường dẫn `/admin`, ADR-0006: chung một app). Khi cần deploy admin riêng, chuyển `admin/` thành app thứ hai trong pnpm workspace.
+- **Công cụ:** pnpm 10.33 (`packageManager` trong `package.json`, giống dự án YBA), Node 24 ghi trong `.nvmrc` (máy dev tối thiểu 22), cài thư viện luôn ghi phiên bản chính xác (`.npmrc`: `save-exact=true`). Chưa dùng workspace vì chỉ có một app JavaScript.
 - **Font theo `DESIGN.md`:** Be Vietnam Pro (chữ thường) và Barlow Condensed (tiêu đề), nạp bằng `next/font` với bộ chữ `vietnamese`. Không dùng font mặc định của mẫu (Geist chỉ có bộ chữ Latin, thiếu dấu tiếng Việt).
 
 ## Hệ quả
