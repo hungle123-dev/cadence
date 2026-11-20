@@ -15,3 +15,23 @@ jobs:
           cache: maven # lưu thư viện Maven lại, lần sau build nhanh hơn
       - run: ./mvnw verify
         working-directory: backend
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: frontend/package.json # đọc "packageManager": "pnpm@10.33.0"
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: frontend/.nvmrc # Node 24, giống trên máy bạn
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm build
