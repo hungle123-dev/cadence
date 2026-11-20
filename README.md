@@ -6,7 +6,7 @@ Cadence là thương hiệu giả định. Đây là dự án portfolio làm m�
 
 ## Trạng thái
 
-Thiết kế xong (bước 1–5). Đang làm **walking skeleton** (bước 6). Tiến độ chi tiết: [docs/README.md](docs/README.md).
+Thiết kế xong (bước 1–5). Đang làm **walking skeleton** (bước 6).
 
 ## Dự án muốn chứng minh
 
@@ -30,10 +30,6 @@ Thiết kế xong (bước 1–5). Đang làm **walking skeleton** (bước 6). 
 
 | Tài liệu | Nội dung |
 |---|---|
-| [docs/README.md](docs/README.md) | Mục lục, tiến độ, nhật ký thay đổi |
-| [docs/design/](docs/design/) | Phạm vi, thiết kế chiến lược và chiến thuật, kiến trúc, database, walking skeleton |
-| [docs/design/04-architecture/adr/](docs/design/04-architecture/adr/) | Các quyết định kiến trúc (ADR) |
-| [docs/ecommerce-domain.md](docs/ecommerce-domain.md) | Nghiên cứu domain thương mại điện tử |
 | [prototype/](prototype/) | Prototype giao diện bằng HTML (trang bán hàng và trang quản trị) |
 
 ## Chạy
