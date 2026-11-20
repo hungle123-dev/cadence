@@ -15,7 +15,7 @@ Website bán hàng trực tiếp (D2C) giày và quần áo thể thao, thị tr
 
 Trạng thái: ⚪ Chưa làm → 🔵 Đang viết → 🟡 Đang review → ✅ Đã chốt. Tài liệu đã chốt vẫn sửa được, nhưng mỗi lần sửa ghi vào [Nhật ký thay đổi](#nhật-ký-thay-đổi).
 
-**Việc tiếp theo:** S1 (khởi tạo Git + repo GitHub) trong [bước 6](design/06-walking-skeleton.md) mục 6.4. Làm xong nhờ Claude review.
+**Việc tiếp theo:** S9 (Docker Compose local) trong [bước 6](design/06-walking-skeleton.md) mục 6.4. Làm xong nhờ Claude review.
 
 ## Cấu trúc thư mục
 
@@ -109,3 +109,4 @@ Lưu ý: `P1…` ở bước 2 là policy, `P1…` ở bước 3 là bất biế
 | 2026-11-17 | 06-walking-skeleton | Viết kế hoạch bước 6: định nghĩa xong, phiên bản, cấu trúc repo, 13 nhiệm vụ S1–S13 (bạn tự làm, Claude hướng dẫn và review), thứ tự các lát dọc |
 | 2026-11-17 | 04-architecture, 05-database | Cập nhật phiên bản: Java 25, Spring Boot 4.1 (bản 3.x hết hỗ trợ miễn phí 30/06/2026), Maven, PostgreSQL 18 |
 | 2026-11-19 | 04-architecture | Thêm ADR-0016: frontend dùng Next.js 16 + Tailwind, Cache Components bật, React Compiler chưa bật (quyết ở S7) |
+| 2026-11-20 | 06-walking-skeleton | S1–S8 xong. S8: chấp nhận image backend ~415 MB (vượt mục tiêu ~300 MB vì base JRE + Ubuntu), frontend ~225 MB |

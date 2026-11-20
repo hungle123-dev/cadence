@@ -1,5 +1,7 @@
 // Gọi backend từ phía server của Next.js (Server Component), không bao giờ từ trình duyệt.
 
+import { connection } from "next/server";
+
 export type Category = {
   id: string;
   parentId: string | null;
@@ -10,6 +12,9 @@ export type Category = {
 };
 
 export async function getCategories(): Promise<Category[]> {
+  // Chỉ chạy khi có request thật; lúc build Next dừng ở đây (API_BASE_URL chỉ có lúc chạy).
+  await connection();
+
   const baseUrl = process.env.API_BASE_URL;
   if (!baseUrl) {
     throw new Error("API_BASE_URL chưa được đặt (xem frontend/.env.example)");
