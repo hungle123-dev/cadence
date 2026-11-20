@@ -8,7 +8,7 @@ Cadence là thương hiệu giả định. Đây là dự án portfolio làm m�
 
 Thiết kế xong (bước 1–5). Đang làm **walking skeleton** (bước 6).
 
-## Dự án muốn chứng minh
+## Dự án
 
 - **Không bán quá số hàng** khi nhiều người tranh mua cùng lúc: giữ hàng nguyên tử, có test đồng thời.
 - **Thanh toán an toàn** với VNPay: IPN có xác thực chữ ký, idempotency, hết hạn, đối soát, xử lý tiền đến muộn.
@@ -17,20 +17,14 @@ Thiết kế xong (bước 1–5). Đang làm **walking skeleton** (bước 6).
 
 ## Công nghệ
 
-| Phần | Công nghệ |
-|---|---|
-| Backend | Java 25, Spring Boot 4.1, Spring Data JPA, Flyway, Maven |
-| Frontend | Next.js 16, TypeScript |
-| Dữ liệu | PostgreSQL 18, SeaweedFS (ảnh, API S3) |
-| Thanh toán | VNPay sandbox |
-| Hạ tầng | Docker Compose, Nginx, GitHub Actions, GHCR, 1 VPS |
-| Quan sát | Prometheus, Grafana, Loki |
-
-## Tài liệu
-
-| Tài liệu | Nội dung |
-|---|---|
-| [prototype/](prototype/) | Prototype giao diện bằng HTML (trang bán hàng và trang quản trị) |
+| Phần       | Công nghệ                                                |
+| ---------- | -------------------------------------------------------- |
+| Backend    | Java 25, Spring Boot 4.1, Spring Data JPA, Flyway, Maven |
+| Frontend   | Next.js 16, TypeScript                                   |
+| Dữ liệu    | PostgreSQL 18, SeaweedFS (ảnh, API S3)                   |
+| Thanh toán | VNPay sandbox                                            |
+| Hạ tầng    | Docker Compose, Nginx, GitHub Actions, GHCR, 1 VPS       |
+| Quan sát   | Prometheus, Grafana, Loki                                |
 
 ## Chạy
 
