@@ -5,14 +5,8 @@ spring:
     # Đọc infra/.env, cùng file Docker Compose dùng. Biến môi trường thật luôn thắng.
     # Đường dẫn tính từ thư mục backend (thư mục làm việc khi chạy).
     import: optional:file:../infra/.env[.properties]
-  datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:cadence}
-    username: cadence_app # ứng dụng = nhân viên: chỉ đọc/ghi dữ liệu (ADR-0014)
-    password: ${CADENCE_APP_PASSWORD}
   flyway:
-    locations: classpath:db/migration,classpath:db/seed
-    user: cadence_migrator # Flyway = thủ kho: được tạo/sửa bảng
-    password: ${CADENCE_MIGRATOR_PASSWORD}
+    locations: classpath:db/migration,classpath:db/seed # máy cá nhân: thêm dữ liệu mẫu
 
 logging:
   structured:

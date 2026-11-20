@@ -36,7 +36,7 @@ flowchart TB
   browser([Trình duyệt])
   vnpay[(VNPay)]
   subgraph host[Một máy chủ — Docker Compose]
-    proxy[Caddy<br/>reverse proxy, HTTPS]
+    proxy[Nginx<br/>reverse proxy, HTTPS]
     web[Web — Next.js<br/>storefront + /admin, SSR]
     api[API — Java 25, Spring Boot 4.1<br/>modular monolith 8 module<br/>+ scheduler + outbox relay]
     db[(PostgreSQL<br/>mỗi module một schema)]
@@ -59,7 +59,7 @@ flowchart TB
 
 | Container | Công nghệ | Trách nhiệm | ADR |
 |---|---|---|---|
-| Caddy | Caddy 2 | HTTPS tự động, chia đường dẫn: `/` → web, `/api` → api, `/media` → ảnh. Trình duyệt chỉ thấy **một tên miền** nên không cần CORS | [0006](adr/0006-api-and-session-auth.md), [0008](adr/0008-deploy-single-vps-docker-compose.md) |
+| Nginx | Nginx 1.28 | HTTPS (Certbot, ADR-0017), chia đường dẫn: `/` → web, `/api` → api, `/media` → ảnh. Trình duyệt chỉ thấy **một tên miền** nên không cần CORS | [0006](adr/0006-api-and-session-auth.md), [0008](adr/0008-deploy-single-vps-docker-compose.md) |
 | Web | Next.js (App Router) | Trang bán hàng render phía server cho SEO (G7); trang quản trị ở `/admin` trong cùng app | [0006](adr/0006-api-and-session-auth.md) |
 | API | Java 25 (LTS), Spring Boot 4.1, Maven | Toàn bộ nghiệp vụ, 8 module theo bounded context. Scheduler (hết hạn thanh toán, đối soát, hẹn giờ ra mắt) và outbox relay chạy **trong cùng tiến trình** | [0001](adr/0001-modular-monolith.md), [0005](adr/0005-outbox-in-process-events.md) |
 | PostgreSQL | PostgreSQL 18 | Một database, **mỗi module một schema**, không module nào đọc schema của module khác | [0001](adr/0001-modular-monolith.md) |
@@ -79,7 +79,7 @@ sequenceDiagram
   A->>D: 1 transaction: giữ hàng + tạo đơn + tạo payment + outbox (ADR-0002, 0003)
   A-->>B: URL thanh toán VNPay (ký HMAC, không gọi mạng)
   B->>V: Khách thanh toán
-  V->>A: IPN (qua Caddy, địa chỉ công khai)
+  V->>A: IPN (qua Nginx, địa chỉ công khai)
   A->>D: Payment SUCCEEDED + outbox "Thanh toán đã ghi nhận"
   A-->>V: Mã phản hồi theo format VNPay
   V-->>B: Chuyển về Return URL
@@ -107,9 +107,9 @@ sequenceDiagram
 | [0003](adr/0003-stock-reservation-conditional-update.md) | Giữ hàng bằng UPDATE có điều kiện, theo thứ tự SKU | Đã chấp nhận | H4 |
 | [0004](adr/0004-guest-cart-server-side.md) | Giỏ guest lưu ở server, cookie chỉ giữ mã giỏ | Đã chấp nhận | H7 |
 | [0005](adr/0005-outbox-in-process-events.md) | Outbox + inbox tự viết, giao sự kiện trong cùng tiến trình | Đã chấp nhận | Bước 3 |
-| [0006](adr/0006-api-and-session-auth.md) | REST + OpenAPI, cùng tên miền qua Caddy, đăng nhập bằng session cookie | Đã chấp nhận | N4, N5 |
+| [0006](adr/0006-api-and-session-auth.md) | REST + OpenAPI, cùng tên miền qua reverse proxy, đăng nhập bằng session cookie | Đã chấp nhận | N4, N5 |
 | [0007](adr/0007-image-storage.md) | Ảnh trong SeaweedFS (chuẩn S3, thay MinIO đã ngừng phát triển), resize bằng Next.js Image | Đã chấp nhận | Q2 |
-| [0008](adr/0008-deploy-single-vps-docker-compose.md) | Deploy: 1 VPS + Docker Compose + Caddy | Đã chấp nhận | Q3 |
+| [0008](adr/0008-deploy-single-vps-docker-compose.md) | Deploy: 1 VPS + Docker Compose + reverse proxy (Caddy, đổi sang Nginx ở ADR-0017) | Đã chấp nhận | Q3 |
 | [0009](adr/0009-ci-cd-github-actions.md) | CI/CD bằng GitHub Actions, image trên GHCR, migration bằng Flyway | Đã chấp nhận | N8 |
 | [0010](adr/0010-observability.md) | Log JSON + correlation id, Prometheus + Grafana + Loki | Đã chấp nhận | N6 |
 | [0011](adr/0011-persistence-spring-data-jpa.md) | Spring Data JPA, entity JPA tách khỏi domain model, Flyway quản lý schema | Đã chấp nhận | Bạn chọn |
@@ -118,6 +118,7 @@ sequenceDiagram
 | [0014](adr/0014-single-db-user-schema-boundary-by-tests.md) | Một DB user cho ứng dụng, ranh giới schema ép bằng test; thay một phần ADR-0001 (phát hiện ở bước 5) | Đã chấp nhận | ADR-0001 vs ADR-0002 |
 | [0015](adr/0015-iam-in-house-spring-security.md) | IAM tự làm bằng Spring Security, port `CurrentUser`, kiểm quyền không kiểm vai trò; điều kiện chuyển sang Keycloak | Đã chấp nhận | CUS-01…05, N5 |
 | [0016](adr/0016-frontend-nextjs-tailwind-cache-components.md) | Frontend: Next.js 16 + Tailwind; Cache Components bật (dữ liệu động trong Suspense, build không cần backend); React Compiler chưa bật | Đã chấp nhận | S7, G7, N3 |
+| [0017](adr/0017-reverse-proxy-nginx.md) | Reverse proxy là Nginx thay Caddy (để học, dùng lại cho dự án NestJS); HTTPS bằng Certbot | Đã chấp nhận | S9, bạn chọn |
 
 ## 4.6 Lộ trình DevOps (bạn tự làm, học theo dự án)
 
@@ -129,7 +130,7 @@ Theo thứ tự; mỗi mục xong là một kỹ năng có thể nói trong ph�
 | D2 | `docker-compose.yml` cho local: Postgres, SeaweedFS, Mailpit, API, Web | Bước 6 | 0008 |
 | D3 | GitHub Actions CI: build, unit test, ArchUnit, Testcontainers | Bước 6 | 0009 |
 | D4 | Dựng VPS: SSH key, tắt đăng nhập mật khẩu, firewall, user deploy riêng | Bước 6 | 0008 |
-| D5 | Caddy + tên miền + HTTPS | Bước 6 | 0008 |
+| D5 | Nginx + Certbot + tên miền + HTTPS | Bước 6 | 0008 |
 | D6 | CD: build image → GHCR → SSH vào VPS → `docker compose pull && up -d` → smoke test | Bước 6 | 0009 |
 | D7 | Backup Postgres mỗi đêm ra ngoài VPS + **thử khôi phục** một lần | Lát 1 | 0008 |
 | D8 | Prometheus + Grafana + Loki, dashboard nghiệp vụ, cảnh báo cơ bản | Lát 2 (thiếu giờ thì bỏ Loki trước) | 0010 |

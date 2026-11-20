@@ -9,13 +9,13 @@ Website bán hàng trực tiếp (D2C) giày và quần áo thể thao, thị tr
 | 1 | [Phạm vi](design/01-scope.md) | ✅ Đã chốt | 2026-11-16 |
 | 2 | [Thiết kế chiến lược](design/02-strategic-design.md): Event Storming, context map, BC canvas | ✅ Đã chốt | 2026-11-17 |
 | 3 | [Thiết kế chiến thuật](design/03-tactical-design/README.md): aggregate, bất biến, state machine, use case | ✅ Đã chốt | 2026-11-17 |
-| 4 | [Kiến trúc và ADR](design/04-architecture/README.md): sơ đồ C4, 16 ADR, lộ trình DevOps | ✅ Đã chốt | 2026-11-17 |
+| 4 | [Kiến trúc và ADR](design/04-architecture/README.md): sơ đồ C4, 17 ADR, lộ trình DevOps | ✅ Đã chốt | 2026-11-17 |
 | 5 | [Thiết kế database](design/05-database/README.md): schema theo module, bảng + cột + lý do, index, ràng buộc | ✅ Đã chốt | 2026-11-17 |
 | 6 | [Walking skeleton](design/06-walking-skeleton.md): 13 nhiệm vụ S1–S13, bạn tự làm, Claude review | 🔵 Đang làm | 2026-11-17 |
 
 Trạng thái: ⚪ Chưa làm → 🔵 Đang viết → 🟡 Đang review → ✅ Đã chốt. Tài liệu đã chốt vẫn sửa được, nhưng mỗi lần sửa ghi vào [Nhật ký thay đổi](#nhật-ký-thay-đổi).
 
-**Việc tiếp theo:** S9 (Docker Compose local) trong [bước 6](design/06-walking-skeleton.md) mục 6.4. Làm xong nhờ Claude review.
+**Việc tiếp theo:** S10 (CI bằng GitHub Actions) trong [bước 6](design/06-walking-skeleton.md) mục 6.4. Làm xong nhờ Claude review.
 
 ## Cấu trúc thư mục
 
@@ -110,3 +110,4 @@ Lưu ý: `P1…` ở bước 2 là policy, `P1…` ở bước 3 là bất biế
 | 2026-11-17 | 04-architecture, 05-database | Cập nhật phiên bản: Java 25, Spring Boot 4.1 (bản 3.x hết hỗ trợ miễn phí 30/06/2026), Maven, PostgreSQL 18 |
 | 2026-11-19 | 04-architecture | Thêm ADR-0016: frontend dùng Next.js 16 + Tailwind, Cache Components bật, React Compiler chưa bật (quyết ở S7) |
 | 2026-11-20 | 06-walking-skeleton | S1–S8 xong. S8: chấp nhận image backend ~415 MB (vượt mục tiêu ~300 MB vì base JRE + Ubuntu), frontend ~225 MB |
+| 2026-11-20 | 04-architecture, 06-walking-skeleton, 01-scope | S9 xong. Thêm ADR-0017: reverse proxy là Nginx thay Caddy (bạn chọn để học); ADR-0008 giữ phần còn lại. Cấu hình DB chuyển sang `application.yaml` dùng chung để chạy được không cần profile `local` |

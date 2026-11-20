@@ -20,7 +20,7 @@ Bản nháp đầu chọn MinIO. MinIO bản cộng đồng chuyển sang chế 
 - Code backend dùng **AWS SDK (API S3)**, không dùng thư viện riêng của SeaweedFS. Đổi nơi lưu (SeaweedFS khác, R2, S3) chỉ là đổi cấu hình endpoint + khoá.
 - DB chỉ lưu **khoá lưu trữ** + alt + rộng + cao + thứ tự; không lưu URL đầy đủ.
 - Admin upload ảnh → API kiểm tra loại và kích thước → lưu vào bucket → trả khoá.
-- Ảnh phục vụ qua Caddy tại `/media/…`; Next.js Image resize và cache theo kích thước cần.
+- Ảnh phục vụ qua Nginx (ADR-0017) tại `/media/…`; Next.js Image resize và cache theo kích thước cần.
 - Script seed tải ảnh Unsplash vào bucket, nên khi thay bằng ảnh tự tạo chỉ cần đổi file, không đổi code.
 
 ## Hệ quả

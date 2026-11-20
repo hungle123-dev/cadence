@@ -10,7 +10,7 @@ Walking skeleton là **lát mỏng nhất đi xuyên qua mọi tầng và mọi 
 
 **Luồng duy nhất của skeleton:** trang chủ Next.js (render phía server) hiển thị danh sách category, lấy từ `GET /api/catalog/categories`, đọc từ bảng `catalog.categories` do Flyway tạo, chạy trên staging có HTTPS, được deploy tự động khi merge vào `main`.
 
-Luồng này chạm đủ: Next.js → Caddy → controller → use case → port → adapter JPA → PostgreSQL → ngược lại; Flyway; test ở cả ba tầng; Docker; CI; CD.
+Luồng này chạm đủ: Next.js → Nginx → controller → use case → port → adapter JPA → PostgreSQL → ngược lại; Flyway; test ở cả ba tầng; Docker; CI; CD.
 
 **Xong khi tất cả đều đúng:**
 - [ ] Mở `https://<tên miền staging>` thấy danh sách category lấy từ database.
@@ -32,7 +32,7 @@ Luồng này chạm đủ: Next.js → Caddy → controller → use case → por
 | Node.js | Bản LTS hiện hành | Kiểm tra trên nodejs.org khi cài |
 | Database | **PostgreSQL 18** | |
 | Lưu ảnh | SeaweedFS | Chưa cần trong skeleton; thêm ở lát catalog |
-| Proxy | Caddy 2 | |
+| Proxy | Nginx 1.28 | Thay Caddy ở S9 (ADR-0017) |
 | CI/CD | GitHub Actions + GHCR | |
 
 **Cảnh báo khi đọc hướng dẫn trên mạng:** phần lớn bài viết và câu trả lời vẫn viết cho Spring Boot 3. Boot 4 có thay đổi (chia nhỏ starter, Jackson 3, Hibernate 7, một số cấu hình đổi tên). Gặp lỗi lạ thì **đọc tài liệu chính thức và release notes của Boot 4** trước khi chép code mẫu.
@@ -56,7 +56,7 @@ cadence/
 ├─ infra/
 │  ├─ compose.yaml              chạy local
 │  ├─ compose.staging.yaml      chạy trên VPS
-│  ├─ caddy/Caddyfile
+│  ├─ nginx/default.conf
 │  └─ db/init/                  tạo user cadence_app, cadence_migrator (ADR-0014)
 ├─ .github/workflows/
 ├─ docs/                        (đã có)
@@ -79,10 +79,10 @@ Làm theo thứ tự. Cột "Trạng thái" cập nhật khi review xong.
 | S6 | Nền xuyên suốt | Lỗi trả Problem Details; log JSON có `correlationId`; health liveness/readiness | ADR-0006, ADR-0010 | ✅ |
 | S7 | Frontend tối thiểu | Trang `/` render phía server, gọi API, hiện danh sách category | ADR-0006 | ✅ |
 | S8 | **D1** Dockerfile cho backend và frontend | Multi-stage, chạy bằng user không phải root, image backend dưới ~300 MB (thực tế: backend ~415 MB, ~358 MB là base JRE + Ubuntu, chấp nhận; giảm được bằng Alpine/jlink nếu cần. Frontend ~225 MB) | ADR-0008 | ✅ |
-| S9 | **D2** Docker Compose local | Một lệnh `docker compose up` chạy Postgres + API + Web + Caddy; mở `http://localhost` thấy trang | ADR-0008 | ⚪ |
+| S9 | **D2** Docker Compose local | Một lệnh `docker compose up` chạy Postgres + API + Web + Nginx; mở `http://localhost` thấy trang | ADR-0008, 0017 | ✅ |
 | S10 | **D3** CI | Pull request chạy build, test (cả Testcontainers), lint/build frontend; bật branch protection cho `main` | ADR-0009 | ⚪ |
 | S11 | **D4** Dựng VPS an toàn | Đăng nhập bằng SSH key, tắt mật khẩu, firewall chỉ mở 22/80/443, user `deploy` không phải root, cài Docker | ADR-0008 | ⚪ |
-| S12 | **D5** Tên miền + HTTPS | `https://<staging>` có chứng chỉ hợp lệ qua Caddy | ADR-0008 | ⚪ |
+| S12 | **D5** Tên miền + HTTPS | `https://<staging>` có chứng chỉ hợp lệ (Nginx + Certbot) | ADR-0008, 0017 | ⚪ |
 | S13 | **D6** CD | Merge vào `main` → image lên GHCR → VPS kéo về và khởi động → smoke test; rollback bằng tag cũ | ADR-0009 | ⚪ |
 
 ### Gợi ý cho từng nhiệm vụ

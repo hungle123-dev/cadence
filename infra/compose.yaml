@@ -1,4 +1,4 @@
-# Postgres cho máy cá nhân. Mọi giá trị đọc từ .env cùng thư mục (mẫu: .env.example).
+# Cả hệ thống trên máy cá nhân: Postgres + API + Web + Nginx (mở http://localhost). Mọi giá trị đọc từ .env cùng thư mục (mẫu: .env.example).
 #   docker compose -f infra/compose.yaml up -d       bật (tạo 2 tài khoản ở lần đầu)
 #   docker compose -f infra/compose.yaml stop        tắt, giữ dữ liệu
 #   docker compose -f infra/compose.yaml down -v     xoá cả dữ liệu, làm lại từ đầu
@@ -20,6 +20,41 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+
+  api:
+    build: ../backend # Compose tự build từ backend/Dockerfile
+    image: cadence-api:dev # tên image sau khi build
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: local # có seed + log chữ cho máy cá nhân
+      DB_HOST: postgres # tên service, không phải localhost
+      DB_PORT: 5432 # cổng bên trong mạng Compose, không phải 15432
+      DB_NAME: ${DB_NAME:-cadence}
+      CADENCE_APP_PASSWORD: ${CADENCE_APP_PASSWORD}
+      CADENCE_MIGRATOR_PASSWORD: ${CADENCE_MIGRATOR_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy # chờ pg_isready báo OK rồi mới chạy
+
+  web:
+    build: ../frontend # Compose tự build từ frontend/Dockerfile
+    image: cadence-web:dev
+    restart: unless-stopped
+    environment:
+      API_BASE_URL: http://api:8080/api # gọi backend bằng tên service "api"
+    depends_on:
+      - api # bật api trước rồi mới bật web
+
+  nginx:
+    image: nginx:1.28-alpine # ghim phiên bản stable; xem tag mới trên Docker Hub
+    restart: unless-stopped
+    ports:
+      - "80:80" # cửa duy nhất mở ra ngoài
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - api
+      - web
 
 volumes:
   pgdata:

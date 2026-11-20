@@ -23,7 +23,7 @@ Thiết kế xong (bước 1–5). Đang làm **walking skeleton** (bước 6). 
 | Frontend | Next.js 16, TypeScript |
 | Dữ liệu | PostgreSQL 18, SeaweedFS (ảnh, API S3) |
 | Thanh toán | VNPay sandbox |
-| Hạ tầng | Docker Compose, Caddy, GitHub Actions, GHCR, 1 VPS |
+| Hạ tầng | Docker Compose, Nginx, GitHub Actions, GHCR, 1 VPS |
 | Quan sát | Prometheus, Grafana, Loki |
 
 ## Tài liệu

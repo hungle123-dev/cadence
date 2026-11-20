@@ -197,7 +197,7 @@ Một người review, chỉ với link staging và README, có thể:
 |---|---|---|
 | Q1 | Tên thương hiệu giả định | **Cadence** (không dùng tên/logo Nike, adidas, Puma) |
 | Q2 | Ảnh sản phẩm | Không lấy ảnh từ site các hãng. Trước mắt dùng Unsplash (giấy phép Unsplash). Về sau tự tạo ảnh (AI, đồng bộ nền và góc chụp, không logo) và **tự host**. Vì vậy hệ thống lưu ảnh như tài nguyên của mình (khoá lưu trữ, kích thước, alt), không gắn cứng vào URL Unsplash; nơi lưu và cách resize quyết định ở bước 4 |
-| Q3 | Nơi deploy & ngân sách | Đã chốt ở [ADR-0008](04-architecture/adr/0008-deploy-single-vps-docker-compose.md): 1 VPS (~5–7 USD/tháng) + Docker Compose + Caddy. Bạn tự làm phần CI/CD/DevOps để học |
+| Q3 | Nơi deploy & ngân sách | Đã chốt ở [ADR-0008](04-architecture/adr/0008-deploy-single-vps-docker-compose.md): 1 VPS (~5–7 USD/tháng) + Docker Compose + Nginx ([ADR-0017](04-architecture/adr/0017-reverse-proxy-nginx.md), thay Caddy). Bạn tự làm phần CI/CD/DevOps để học |
 | Q4 | Số lượng dữ liệu mẫu | ~30 sản phẩm là đủ demo lọc/PLP |
 
 ## 1.11 Prototype và phạm vi

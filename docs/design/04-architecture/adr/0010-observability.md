@@ -16,7 +16,7 @@ N6 yêu cầu log có cấu trúc + correlation id, metrics nghiệp vụ, healt
 
 ## Quyết định
 Chọn **B**.
-- **Log:** JSON, mỗi dòng có `correlationId` (lấy từ header hoặc tạo mới ở Caddy/API, chuyển tiếp sang listener của outbox), `orderId` khi có. Không ghi mật khẩu, số thẻ, token.
+- **Log:** JSON, mỗi dòng có `correlationId` (lấy từ header hoặc tạo mới ở Nginx/API, chuyển tiếp sang listener của outbox), `orderId` khi có. Không ghi mật khẩu, số thẻ, token.
 - **Metrics:** Micrometer → Prometheus. Ngoài metrics kỹ thuật (JVM, HTTP, pool DB), có metrics nghiệp vụ: số đơn mỗi phút, tỷ lệ thanh toán thành công, số payment chờ quá hạn, số sự kiện outbox `DEAD`, số lần `OUT_OF_STOCK`.
 - **Health:** `/actuator/health` (liveness, readiness có kiểm tra DB) cho Docker và smoke test.
 - **Cảnh báo** cơ bản qua Grafana: API chết, outbox có sự kiện DEAD, payment chờ quá hạn tăng.

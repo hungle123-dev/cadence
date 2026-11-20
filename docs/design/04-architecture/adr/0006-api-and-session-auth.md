@@ -11,7 +11,7 @@ Next.js cần gọi API khi render phía server (SEO) và từ trình duyệt (g
 | Câu hỏi | Lựa chọn | Chọn |
 |---|---|---|
 | Kiểu API | REST + JSON / GraphQL | **REST**, mô tả bằng OpenAPI, sinh client TypeScript cho Next.js |
-| Đường đi | Trình duyệt gọi thẳng API ở tên miền khác (cần CORS) / **cùng tên miền qua Caddy** (`/api/*`) | **Cùng tên miền**: không CORS, cookie đơn giản |
+| Đường đi | Trình duyệt gọi thẳng API ở tên miền khác (cần CORS) / **cùng tên miền qua reverse proxy** (Nginx, ADR-0017; `/api/*`) | **Cùng tên miền**: không CORS, cookie đơn giản |
 | Đăng nhập | JWT lưu ở client / **session phía server + cookie HttpOnly** | **Session** lưu trong PostgreSQL (Spring Session JDBC) |
 
 JWT khó thu hồi trước hạn (đăng xuất, khoá tài khoản staff) và dễ bị lưu sai chỗ (localStorage). Một backend, một tên miền thì session đơn giản và an toàn hơn.

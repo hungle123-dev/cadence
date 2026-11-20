@@ -1,6 +1,6 @@
 # ADR-0008: Deploy trên 1 VPS bằng Docker Compose, Caddy làm HTTPS
 
-- **Trạng thái:** Đã chấp nhận (2026-11-17)
+- **Trạng thái:** Đã chấp nhận (2026-11-17). Phần "Caddy làm HTTPS" được thay bởi [ADR-0017](0017-reverse-proxy-nginx.md) (Nginx), các quyết định còn lại giữ nguyên
 - **Ngày:** 2026-11-17
 - **Liên quan:** Q3, N8, mục 1.9 (định nghĩa xong cần link staging), lộ trình DevOps D1–D7
 
@@ -18,7 +18,7 @@ Người review cần một link chạy thật. VNPay sandbox cần địa chỉ
 Chọn **A**.
 - VPS khoảng **2 vCPU, 4 GB RAM** (đủ cho API Java, Next.js, PostgreSQL, SeaweedFS và bộ quan sát). Chọn nhà cung cấp lúc làm bước 6.
 - Một file `docker-compose.yml` cho local và một file cho staging dùng chung image.
-- Caddy lo HTTPS tự động; tên miền riêng (~10–15 USD/năm) hoặc tên miền miễn phí lúc đầu.
+- ~~Caddy lo HTTPS tự động~~ → Nginx + Certbot (ADR-0017); tên miền riêng (~10–15 USD/năm) hoặc tên miền miễn phí lúc đầu.
 - Bí mật (mật khẩu DB, khoá VNPay) để trong file `.env` trên VPS và GitHub Secrets; **không commit**.
 - Bảo mật máy: đăng nhập SSH bằng khoá, tắt mật khẩu, firewall chỉ mở 22/80/443, user deploy riêng.
 - Backup: `pg_dump` mỗi đêm + dữ liệu SeaweedFS, gửi ra **ngoài VPS** (ví dụ R2 gói miễn phí), giữ 7 bản; **thử khôi phục** ít nhất một lần.
