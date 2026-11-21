@@ -10,7 +10,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 import com.cadence.catalog.application.dto.ProductSnapshot;
-import com.cadence.catalog.application.dto.ProductTileSearchResult;
+import com.cadence.catalog.application.dto.ProductTileSnapshotPage;
 import com.cadence.catalog.application.service.ProductTileViewAssembler;
 import com.cadence.catalog.domain.model.ColorwayPricing;
 import com.cadence.catalog.domain.model.Sale;
@@ -80,12 +80,12 @@ class ProductTileViewAssemblerTest {
         assertThat(tile.colorwaySlug()).isEqualTo("den");
     }
 
-    private static ProductTileSearchResult page(long totalItems, ProductTileSearchResult.Tile... tiles) {
-        return new ProductTileSearchResult(List.of(tiles), totalItems);
+    private static ProductTileSnapshotPage page(long totalItems, ProductTileSnapshotPage.Tile... tiles) {
+        return new ProductTileSnapshotPage(List.of(tiles), totalItems);
     }
 
-    private static ProductTileSearchResult.Tile tile(ColorwayPricing pricing, boolean inStock) {
+    private static ProductTileSnapshotPage.Tile tile(ColorwayPricing pricing, boolean inStock) {
         ProductSnapshot.Image noImage = null;
-        return new ProductTileSearchResult.Tile("tempo-2", "den", "Cadence Tempo 2", "Đen", noImage, pricing, 3, inStock);
+        return new ProductTileSnapshotPage.Tile("tempo-2", "den", "Cadence Tempo 2", "Đen", noImage, pricing, 3, inStock);
     }
 }

@@ -55,7 +55,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         problem.setProperty(CODE, ex.code());
         if (ex instanceof ValidationException invalid && !invalid.invalidParams().isEmpty()) {
             List<ApiProblem.Param> params = invalid.invalidParams().stream()
-                    .map(p -> new ApiProblem.Param(p.name(), p.reason())).toList();
+                    .map(param -> new ApiProblem.Param(param.name(), param.reason())).toList();
             problem.setProperty(INVALID_PARAMS, params);
         }
         return withCorrelationId(problem);
@@ -63,9 +63,9 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     static HttpStatus statusFor(DomainException ex) {
         return switch (ex) {
-            case NotFoundException e -> HttpStatus.NOT_FOUND;
-            case ValidationException e -> HttpStatus.BAD_REQUEST;
-            case ConflictException e -> HttpStatus.CONFLICT;
+            case NotFoundException _ -> HttpStatus.NOT_FOUND;
+            case ValidationException _ -> HttpStatus.BAD_REQUEST;
+            case ConflictException _ -> HttpStatus.CONFLICT;
             default -> HttpStatus.UNPROCESSABLE_CONTENT;
         };
     }

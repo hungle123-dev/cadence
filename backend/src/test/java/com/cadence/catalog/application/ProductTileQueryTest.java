@@ -99,8 +99,8 @@ class ProductTileQueryTest {
         return new ProductTileQuery(null, List.of(), List.of(), gender, minPrice, maxPrice, ProductSort.NEWEST, page);
     }
 
-    private static List<String> invalidNames(Runnable create) {
-        var error = catchThrowableOfType(InvalidProductFilterException.class, create::run);
+    private static List<String> invalidNames(Runnable call) {
+        var error = catchThrowableOfType(InvalidProductFilterException.class, call::run);
         assertThat(error).as("expected InvalidProductFilterException").isNotNull();
         return error.invalidParams().stream().map(InvalidParam::name).toList();
     }

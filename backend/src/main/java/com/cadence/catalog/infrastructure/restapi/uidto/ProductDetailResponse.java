@@ -27,7 +27,7 @@ public record ProductDetailResponse(
     public static ProductDetailResponse from(ProductDetailView view) {
         return new ProductDetailResponse(
                 view.slug(), view.name(), view.description(), view.type(), view.gender(), view.specs(),
-                view.breadcrumb().stream().map(b -> new BreadcrumbItem(b.slug(), b.name())).toList(),
+                view.breadcrumb().stream().map(crumb -> new BreadcrumbItem(crumb.slug(), crumb.name())).toList(),
                 view.colorways().stream().map(ColorwayDetail::from).toList());
     }
 

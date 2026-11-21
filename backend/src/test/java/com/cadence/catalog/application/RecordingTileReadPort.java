@@ -7,7 +7,7 @@ import java.util.UUID;
 
 import com.cadence.catalog.application.dto.ProductTilePageView;
 import com.cadence.catalog.application.dto.ProductTileQuery;
-import com.cadence.catalog.application.dto.ProductTileSearchResult;
+import com.cadence.catalog.application.dto.ProductTileSnapshotPage;
 import com.cadence.catalog.application.port.driven.ProductTileReadPort;
 
 /** Fake PLP port: answers with an empty page and remembers what it was asked. */
@@ -21,11 +21,11 @@ final class RecordingTileReadPort implements ProductTileReadPort {
     Instant lastNow;
 
     @Override
-    public ProductTileSearchResult search(ProductTileQuery query, Set<UUID> categoryIds, Instant now) {
+    public ProductTileSnapshotPage findTiles(ProductTileQuery query, Set<UUID> categoryIds, Instant now) {
         calls++;
         lastCategoryIds = categoryIds;
         lastNow = now;
-        return new ProductTileSearchResult(List.of(), 0);
+        return new ProductTileSnapshotPage(List.of(), 0);
     }
 
     @Override

@@ -6,8 +6,8 @@ import org.jspecify.annotations.Nullable;
 
 import com.cadence.catalog.domain.model.ColorwayPricing;
 
-/** One page of tiles as stored: what ProductTileReadPort.search returns. Pricing is raw; the use case applies R-PRICE. */
-public record ProductTileSearchResult(List<Tile> tiles, long totalItems) {
+/** One page of tiles as stored: what ProductTileReadPort.findTiles returns. Pricing is raw; the use case applies R-PRICE. */
+public record ProductTileSnapshotPage(List<Tile> tiles, long totalItems) {
 
     public record Tile(
             String productSlug,

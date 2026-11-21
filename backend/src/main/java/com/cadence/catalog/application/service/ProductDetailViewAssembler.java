@@ -22,18 +22,18 @@ public class ProductDetailViewAssembler {
         this.categories = categories;
     }
 
-    public ProductDetailView toView(ProductSnapshot product, Instant at) {
+    public ProductDetailView toView(ProductSnapshot product, Instant now) {
         return new ProductDetailView(
                 product.slug(), product.name(), product.description(), product.type(), product.gender(),
                 product.specs(),
                 breadcrumbFor(product.categoryId()),
-                product.colorways().stream().map(colorway -> toView(colorway, at)).toList());
+                product.colorways().stream().map(colorway -> toView(colorway, now)).toList());
     }
 
-    private ProductDetailView.Colorway toView(ProductSnapshot.Colorway colorway, Instant at) {
+    private ProductDetailView.Colorway toView(ProductSnapshot.Colorway colorway, Instant now) {
         return new ProductDetailView.Colorway(
                 colorway.slug(), colorway.name(), colorway.colorFamily(),
-                colorway.pricing().effectivePriceAt(at),                           // R-PRICE
+                colorway.pricing().effectivePriceAt(now),                           // R-PRICE
                 colorway.sizes().stream().anyMatch(ProductSnapshot.Size::inStock), // R-STOCK
                 colorway.images(),
                 colorway.sizes());

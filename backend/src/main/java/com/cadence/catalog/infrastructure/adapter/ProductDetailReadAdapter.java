@@ -27,52 +27,52 @@ import com.cadence.catalog.infrastructure.persistence.repository.VariantStockFla
 /** Reads one product with its colorways, sizes, images and stock flags, and translates it into a ProductSnapshot. */
 public class ProductDetailReadAdapter implements ProductDetailReadPort {
 
-    private final ProductJpaRepository products;
-    private final VariantStockFlagJpaRepository stockFlags;
+    private final ProductJpaRepository productRepository;
+    private final VariantStockFlagJpaRepository stockFlagRepository;
 
-    public ProductDetailReadAdapter(ProductJpaRepository products, VariantStockFlagJpaRepository stockFlags) {
-        this.products = products;
-        this.stockFlags = stockFlags;
+    public ProductDetailReadAdapter(ProductJpaRepository productRepository, VariantStockFlagJpaRepository stockFlagRepository) {
+        this.productRepository = productRepository;
+        this.stockFlagRepository = stockFlagRepository;
     }
 
     @Override
     @Transactional(readOnly = true)
     public Optional<ProductSnapshot> findBySlug(String slug) {
-        return products.findBySlug(slug).map(this::toSnapshot);
+        return productRepository.findBySlug(slug).map(this::toSnapshot);
     }
 
-    private ProductSnapshot toSnapshot(ProductJpaEntity p) {
-        Map<UUID, Boolean> inStock = inStockByVariant(p);
+    private ProductSnapshot toSnapshot(ProductJpaEntity product) {
+        Map<UUID, Boolean> inStock = inStockByVariant(product);
         return new ProductSnapshot(
-                p.getSlug(), p.getName(), p.getDescription(),
-                ProductType.valueOf(p.getType()), Gender.valueOf(p.getGender()),
-                p.getSpecs(), p.getCategoryId(),
-                new ProductPublication(ProductStatus.valueOf(p.getStatus()), p.getPublishAt()),
-                p.getColorways().stream().map(c -> toSnapshot(c, inStock)).toList());
+                product.getSlug(), product.getName(), product.getDescription(),
+                ProductType.valueOf(product.getType()), Gender.valueOf(product.getGender()),
+                product.getSpecs(), product.getCategoryId(),
+                new ProductPublication(ProductStatus.valueOf(product.getStatus()), product.getPublishAt()),
+                product.getColorways().stream().map(colorway -> toSnapshot(colorway, inStock)).toList());
     }
 
-    private static ProductSnapshot.Colorway toSnapshot(ColorwayJpaEntity c, Map<UUID, Boolean> inStock) {
-        Sale sale = c.getSalePrice() == null
+    private static ProductSnapshot.Colorway toSnapshot(ColorwayJpaEntity colorway, Map<UUID, Boolean> inStock) {
+        Sale sale = colorway.getSalePrice() == null
                 ? null
-                : new Sale(c.getSalePrice(), c.getSaleStartsAt(), c.getSaleEndsAt());
+                : new Sale(colorway.getSalePrice(), colorway.getSaleStartsAt(), colorway.getSaleEndsAt());
         return new ProductSnapshot.Colorway(
-                c.getSlug(), c.getName(), ColorFamily.valueOf(c.getColorFamily()),
-                new ColorwayPricing(c.getListPrice(), sale),
-                c.getImages().stream()
-                        .map(i -> new ProductSnapshot.Image(i.getStorageKey(), i.getAlt(), i.getWidth(), i.getHeight()))
+                colorway.getSlug(), colorway.getName(), ColorFamily.valueOf(colorway.getColorFamily()),
+                new ColorwayPricing(colorway.getListPrice(), sale),
+                colorway.getImages().stream()
+                        .map(image -> new ProductSnapshot.Image(image.getStorageKey(), image.getAlt(), image.getWidth(), image.getHeight()))
                         .toList(),
-                c.getVariants().stream()
-                        .map(v -> new ProductSnapshot.Size(v.getSku(), v.getSize(), inStock.getOrDefault(v.getId(), false)))
+                colorway.getVariants().stream()
+                        .map(variant -> new ProductSnapshot.Size(variant.getSku(), variant.getSize(), inStock.getOrDefault(variant.getId(), false)))
                         .toList());
     }
 
     /** One query for every size of the product: variant id -> in stock. */
-    private Map<UUID, Boolean> inStockByVariant(ProductJpaEntity p) {
-        List<UUID> variantIds = p.getColorways().stream()
-                .flatMap(c -> c.getVariants().stream())
+    private Map<UUID, Boolean> inStockByVariant(ProductJpaEntity product) {
+        List<UUID> variantIds = product.getColorways().stream()
+                .flatMap(colorway -> colorway.getVariants().stream())
                 .map(VariantJpaEntity::getId)
                 .toList();
-        return stockFlags.findAllByVariantIdIn(variantIds).stream()
+        return stockFlagRepository.findAllByVariantIdIn(variantIds).stream()
                 .collect(Collectors.toMap(VariantStockFlagJpaEntity::getVariantId, VariantStockFlagJpaEntity::isInStock));
     }
 }

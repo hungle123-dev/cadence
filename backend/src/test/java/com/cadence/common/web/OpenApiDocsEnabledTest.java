@@ -17,35 +17,35 @@ import com.cadence.TestcontainersConfiguration;
 @Import(TestcontainersConfiguration.class)
 class OpenApiDocsEnabledTest {
 
-	@Autowired
-	MockMvcTester mvc;
+    @Autowired
+    MockMvcTester mvc;
 
-	@Test
-	void spec_has_title_relative_server_and_catalog_endpoint() {
-		var spec = assertThat(mvc.get().uri("/v3/api-docs")).hasStatusOk().bodyJson();
-		spec.extractingPath("$.info.title").isEqualTo("Cadence API");
-		spec.extractingPath("$.servers[0].url").isEqualTo("/api");
-		spec.extractingPath("$.paths['/catalog/categories'].get").isNotNull();
-	}
+    @Test
+    void spec_has_title_relative_server_and_catalog_endpoint() {
+        var spec = assertThat(mvc.get().uri("/v3/api-docs")).hasStatusOk().bodyJson();
+        spec.extractingPath("$.info.title").isEqualTo("Cadence API");
+        spec.extractingPath("$.servers[0].url").isEqualTo("/api");
+        spec.extractingPath("$.paths['/catalog/categories'].get").isNotNull();
+    }
 
-	@Test
-	void spec_documents_the_slice_1a_catalog_contract() {
-		var spec = assertThat(mvc.get().uri("/v3/api-docs")).hasStatusOk().bodyJson();
-		spec.extractingPath("$.paths['/catalog/products'].get.responses['400']").isNotNull();
-		spec.extractingPath("$.paths['/catalog/products/{slug}'].get.responses['404']").isNotNull();
-		spec.extractingPath("$.paths['/catalog/sitemap'].get").isNotNull();
-		spec.extractingPath("$.components.schemas.ProductTile.properties.colorwaySlug").isNotNull();
-		spec.extractingPath("$.components.schemas.Price.properties.compareAt").isNotNull();
-		spec.extractingPath("$.components.schemas.Problem.properties.code").isNotNull();
-	}
+    @Test
+    void spec_documents_the_slice_1a_catalog_contract() {
+        var spec = assertThat(mvc.get().uri("/v3/api-docs")).hasStatusOk().bodyJson();
+        spec.extractingPath("$.paths['/catalog/products'].get.responses['400']").isNotNull();
+        spec.extractingPath("$.paths['/catalog/products/{slug}'].get.responses['404']").isNotNull();
+        spec.extractingPath("$.paths['/catalog/sitemap'].get").isNotNull();
+        spec.extractingPath("$.components.schemas.ProductTile.properties.colorwaySlug").isNotNull();
+        spec.extractingPath("$.components.schemas.Price.properties.compareAt").isNotNull();
+        spec.extractingPath("$.components.schemas.Problem.properties.code").isNotNull();
+    }
 
-	@Test
-	void every_field_is_required_and_nullable_ones_say_so() {
-		var spec = assertThat(mvc.get().uri("/v3/api-docs")).hasStatusOk().bodyJson();
-		spec.extractingPath("$.components.schemas.Price.required").asArray().contains("amount", "compareAt");
-		spec.extractingPath("$.components.schemas.Price.properties.compareAt.type").asArray().contains("null");
-		spec.extractingPath("$.components.schemas.Category.properties.parentId.type").asArray().contains("null");
-		spec.extractingPath("$.components.schemas.Problem.required").asArray()
-				.contains("code", "correlationId").doesNotContain("invalidParams", "instance");
-	}
+    @Test
+    void every_field_is_required_and_nullable_ones_say_so() {
+        var spec = assertThat(mvc.get().uri("/v3/api-docs")).hasStatusOk().bodyJson();
+        spec.extractingPath("$.components.schemas.Price.required").asArray().contains("amount", "compareAt");
+        spec.extractingPath("$.components.schemas.Price.properties.compareAt.type").asArray().contains("null");
+        spec.extractingPath("$.components.schemas.Category.properties.parentId.type").asArray().contains("null");
+        spec.extractingPath("$.components.schemas.Problem.required").asArray()
+                .contains("code", "correlationId").doesNotContain("invalidParams", "instance");
+    }
 }

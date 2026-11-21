@@ -4,7 +4,7 @@ import java.util.List;
 
 import com.cadence.catalog.application.dto.CategoryView;
 
-public interface ListCategoriesUseCase {
+public interface CategoryQueryUseCase {
 
     List<CategoryView> listCategories();
 }

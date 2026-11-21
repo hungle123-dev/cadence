@@ -15,10 +15,10 @@ import com.cadence.catalog.application.port.driven.SitemapReadPort;
 /** Slugs for /sitemap.xml with native SQL, like the PLP: visibility uses the shared CatalogSql.VISIBLE. */
 public class SitemapReadAdapter implements SitemapReadPort {
 
-    /** Categories are always on the menu, so all of them, even empty ones (Q7, AC 1.10). */
+    /** Categories are always on the menu, so all of them, even empty ones (A17, AC 1.10). */
     private static final String CATEGORIES = "SELECT slug, updated_at FROM catalog.categories ORDER BY slug";
 
-    /** lastmod is the later of the last edit and the publish time: a scheduled launch looks fresh (Q6). */
+    /** lastmod is the later of the last edit and the publish time: a scheduled launch looks fresh (A16). */
     private static final String PRODUCTS = """
             SELECT p.slug, GREATEST(p.updated_at, p.publish_at) AS updated_at
             FROM catalog.products p
@@ -34,7 +34,7 @@ public class SitemapReadAdapter implements SitemapReadPort {
 
     @Override
     @Transactional(readOnly = true)
-    public SitemapView find(Instant now) {
+    public SitemapView findSitemapEntries(Instant now) {
         var categories = jdbc.sql(CATEGORIES)
                 .query((rs, rowNum) -> toEntry(rs))
                 .list();

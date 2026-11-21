@@ -15,5 +15,5 @@ public interface ProductQueryUseCase {
     ProductTilePageView listProducts(ProductTileQuery query);
 
     /** Slugs for /sitemap.xml (N4, AC 4.6): every category, visible products only. */
-    SitemapView sitemap();
+    SitemapView getSitemap();
 }

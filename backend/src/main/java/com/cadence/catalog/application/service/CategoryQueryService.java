@@ -4,13 +4,13 @@ import java.util.List;
 
 import com.cadence.catalog.application.dto.CategoryView;
 import com.cadence.catalog.application.port.driven.CategoryReadPort;
-import com.cadence.catalog.application.port.driving.ListCategoriesUseCase;
+import com.cadence.catalog.application.port.driving.CategoryQueryUseCase;
 
-public class ListCategoriesService implements ListCategoriesUseCase {
+public class CategoryQueryService implements CategoryQueryUseCase {
 
     private final CategoryReadPort categories;
 
-    public ListCategoriesService(CategoryReadPort categories) {
+    public CategoryQueryService(CategoryReadPort categories) {
         this.categories = categories;
     }
 
