@@ -11,11 +11,13 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 
 import com.cadence.catalog.application.dto.ProductSnapshot;
+import com.cadence.catalog.application.dto.SitemapView;
 import com.cadence.catalog.application.port.driven.ProductDetailReadPort;
 import com.cadence.catalog.application.service.ProductDetailViewAssembler;
 import com.cadence.catalog.application.service.ProductQueryService;
@@ -72,6 +74,7 @@ class ProductQueryServiceTest {
     private static ProductQueryService serviceWith(ProductSnapshot stored, Instant now) {
         ProductDetailReadPort products = slug -> slug.equals(stored.slug()) ? Optional.of(stored) : Optional.empty();
         return new ProductQueryService(products, new ProductDetailViewAssembler(CATEGORIES), new RecordingTileReadPort(),
-                CATEGORIES, new ProductTileViewAssembler(), Clock.fixed(now, ZoneOffset.UTC));
+                CATEGORIES, new ProductTileViewAssembler(), at -> new SitemapView(List.of(), List.of()),
+                Clock.fixed(now, ZoneOffset.UTC));
     }
 }

@@ -6,8 +6,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.cadence.catalog.application.dto.CategoryView;
 import com.cadence.catalog.application.port.driving.ListCategoriesUseCase;
+import com.cadence.catalog.infrastructure.restapi.uidto.CategoryResponse;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -27,7 +27,7 @@ class CategoryController {
 
     @Operation(summary = "Whole category tree, flat, ordered by depth then position (menu, breadcrumb)")
     @GetMapping
-    List<CategoryView> list() {
-        return listCategories.listCategories();
+    List<CategoryResponse> list() {
+        return listCategories.listCategories().stream().map(CategoryResponse::from).toList();
     }
 }

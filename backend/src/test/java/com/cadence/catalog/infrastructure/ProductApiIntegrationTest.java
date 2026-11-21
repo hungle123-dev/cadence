@@ -118,4 +118,16 @@ class ProductApiIntegrationTest {
             assertThat(result).as(bad).bodyJson().extractingPath("$.code").isEqualTo("CATALOG_INVALID_FILTER");
         }
     }
+
+    // ---------- Sitemap (N4, AC 4.6) ----------
+
+    @Test
+    void sitemap_lists_every_category_and_only_visible_products() {
+        var json = assertThat(mvc.get().uri("/catalog/sitemap")).hasStatusOk().bodyJson();
+
+        json.extractingPath("$.products[*].slug").asArray()
+                .containsExactly("court-classic", "pace-tee", "tempo-2"); // not canvas-low (scheduled), daily-canvas (draft)
+        json.extractingPath("$.categories[*].slug").asArray().contains("giay", "giay-chay-bo", "ao-chay-bo");
+        json.extractingPath("$.products[0].updatedAt").isNotNull();
+    }
 }

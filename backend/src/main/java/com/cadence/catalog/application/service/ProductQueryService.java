@@ -10,9 +10,11 @@ import com.cadence.catalog.application.dto.CategoryView;
 import com.cadence.catalog.application.dto.ProductDetailView;
 import com.cadence.catalog.application.dto.ProductTilePageView;
 import com.cadence.catalog.application.dto.ProductTileQuery;
+import com.cadence.catalog.application.dto.SitemapView;
 import com.cadence.catalog.application.port.driven.CategoryReadPort;
 import com.cadence.catalog.application.port.driven.ProductDetailReadPort;
 import com.cadence.catalog.application.port.driven.ProductTileReadPort;
+import com.cadence.catalog.application.port.driven.SitemapReadPort;
 import com.cadence.catalog.application.port.driving.ProductQueryUseCase;
 import com.cadence.catalog.domain.exception.CategoryNotFoundException;
 import com.cadence.catalog.domain.exception.ProductNotFoundException;
@@ -25,16 +27,18 @@ public class ProductQueryService implements ProductQueryUseCase {
     private final ProductTileReadPort tiles;
     private final CategoryReadPort categories;
     private final ProductTileViewAssembler tileAssembler;
+    private final SitemapReadPort sitemap;
     private final Clock clock;
 
     public ProductQueryService(ProductDetailReadPort products, ProductDetailViewAssembler assembler,
             ProductTileReadPort tiles, CategoryReadPort categories, ProductTileViewAssembler tileAssembler,
-            Clock clock) {
+            SitemapReadPort sitemap, Clock clock) {
         this.products = products;
         this.assembler = assembler;
         this.tiles = tiles;
         this.categories = categories;
         this.tileAssembler = tileAssembler;
+        this.sitemap = sitemap;
         this.clock = clock;
     }
 
@@ -54,6 +58,11 @@ public class ProductQueryService implements ProductQueryUseCase {
         var result = tiles.search(query, categoryIds, now);
         var filters = tiles.findFilterOptions(categoryIds, now);
         return tileAssembler.toView(result, filters, query.page(), now);
+    }
+
+    @Override
+    public SitemapView sitemap() {
+        return sitemap.find(clock.instant());
     }
 
     /** The category and every category below it, at any depth (AC 1.2). */

@@ -44,6 +44,7 @@ class OpenApiDocsEnabledTest {
 		var spec = assertThat(mvc.get().uri("/v3/api-docs")).hasStatusOk().bodyJson();
 		spec.extractingPath("$.components.schemas.Price.required").asArray().contains("amount", "compareAt");
 		spec.extractingPath("$.components.schemas.Price.properties.compareAt.type").asArray().contains("null");
+		spec.extractingPath("$.components.schemas.Category.properties.parentId.type").asArray().contains("null");
 		spec.extractingPath("$.components.schemas.Problem.required").asArray()
 				.contains("code", "correlationId").doesNotContain("invalidParams", "instance");
 	}
