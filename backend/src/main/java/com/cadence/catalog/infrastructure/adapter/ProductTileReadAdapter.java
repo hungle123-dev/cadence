@@ -30,15 +30,12 @@ import com.cadence.catalog.domain.model.Sale;
 /**
  * PLP tiles with native SQL (ADR-0011 allows it for complex reads). Filtering, sorting and paging happen in
  * PostgreSQL, so R-VIS, R-PRICE and R-STOCK are written here a second time and must match the domain:
- * ProductPublication.isVisibleAt, Sale.isActiveAt and "a variant without a stock flag is sold out".
+ * ProductPublication.isVisibleAt (shared in CatalogSql), Sale.isActiveAt and "a variant without a stock flag is
+ * sold out".
  */
 public class ProductTileReadAdapter implements ProductTileReadPort {
 
     // ---------- (1) SQL copies of the domain rules ----------
-
-    /** R-VIS, same as ProductPublication.isVisibleAt. */
-    private static final String VISIBLE =
-            "(p.status = 'PUBLISHED' OR (p.status = 'SCHEDULED' AND p.publish_at <= :now))";
 
     /** R-PRICE, same as Sale.isActiveAt: a sale runs in [starts, ends). */
     private static final String EFFECTIVE_PRICE = """
@@ -156,7 +153,7 @@ public class ProductTileReadAdapter implements ProductTileReadPort {
     /** Visible products (R-VIS) in the given categories: what both the tiles and the filter options start from. */
     private static Where visibleIn(Set<UUID> categoryIds, Instant now) {
         Where where = new Where();
-        where.add(VISIBLE, "now", OffsetDateTime.ofInstant(now, ZoneOffset.UTC));
+        where.add(CatalogSql.VISIBLE, "now", OffsetDateTime.ofInstant(now, ZoneOffset.UTC));
         if (!categoryIds.isEmpty()) {
             where.add("p.category_id IN (:categoryIds)", "categoryIds", List.copyOf(categoryIds));
         }

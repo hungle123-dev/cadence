@@ -3,13 +3,11 @@ package com.cadence.catalog.infrastructure.restapi;
 import java.util.List;
 
 import org.jspecify.annotations.Nullable;
-import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 
 import com.cadence.catalog.application.dto.ProductSort;
 import com.cadence.catalog.application.port.driving.ProductQueryUseCase;
@@ -28,7 +26,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 /**
- * Slice 1a read endpoints (section 7.5): PLP and PDP read the database; the sitemap answers 501 until it is built.
+ * Slice 1a read endpoints (section 7.5): PLP, PDP and the sitemap, all read from the database.
  */
 @Tag(name = CategoryController.TAG)
 @RestController
@@ -88,10 +86,6 @@ class ProductController {
     @ApiResponse(responseCode = "200", description = "OK")
     @GetMapping("/sitemap")
     SitemapResponse sitemap() {
-        throw notYetImplemented();
-    }
-
-    private static ResponseStatusException notYetImplemented() {
-        return new ResponseStatusException(HttpStatus.NOT_IMPLEMENTED, "Chưa có, làm ở L3");
+        return SitemapResponse.from(products.sitemap());
     }
 }

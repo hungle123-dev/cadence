@@ -1,0 +1,14 @@
+package com.cadence.catalog.application.port.driven;
+
+import java.time.Instant;
+
+import com.cadence.catalog.application.dto.SitemapView;
+
+public interface SitemapReadPort {
+
+    /**
+     * Every category, and the products visible at now (R-VIS, in SQL like the PLP). A product's updatedAt is the
+     * later of its last edit and its publish time, so a scheduled launch shows as fresh (Q6).
+     */
+    SitemapView find(Instant now);
+}

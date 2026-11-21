@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.Clock;
+import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
@@ -15,13 +16,14 @@ import org.junit.jupiter.api.Test;
 import com.cadence.catalog.application.dto.CategoryView;
 import com.cadence.catalog.application.dto.ProductSort;
 import com.cadence.catalog.application.dto.ProductTileQuery;
+import com.cadence.catalog.application.dto.SitemapView;
 import com.cadence.catalog.application.port.driven.CategoryReadPort;
 import com.cadence.catalog.application.service.ProductDetailViewAssembler;
 import com.cadence.catalog.application.service.ProductQueryService;
 import com.cadence.catalog.application.service.ProductTileViewAssembler;
 import com.cadence.catalog.domain.exception.CategoryNotFoundException;
 
-/** PLP use case: which categories it asks for (AC 1.2, 1.9) and at what moment. SQL rules are tested in step 4. */
+/** PLP and sitemap use case: which categories it asks for (AC 1.2, 1.9) and at what moment. SQL rules are tested on PostgreSQL. */
 class ProductListQueryServiceTest {
 
     private static final UUID GIAY = UUID.fromString("00000000-0000-7000-8000-000000000001");
@@ -37,9 +39,13 @@ class ProductListQueryServiceTest {
             new CategoryView(GIAY_TRAIL, GIAY_CHAY_BO, "giay-trail", "Giày trail", 3, 1));
 
     private final RecordingTileReadPort tiles = new RecordingTileReadPort();
+    private Instant sitemapAskedAt;
     private final ProductQueryService service = new ProductQueryService(
             slug -> Optional.empty(), new ProductDetailViewAssembler(CATEGORIES), tiles, CATEGORIES,
-            new ProductTileViewAssembler(), Clock.fixed(NOW, ZoneOffset.UTC));
+            new ProductTileViewAssembler(), now -> {
+                sitemapAskedAt = now;
+                return new SitemapView(List.of(), List.of());
+            }, Clock.fixed(NOW, ZoneOffset.UTC));
 
     @Test
     void no_category_searches_every_category() {
@@ -81,6 +87,13 @@ class ProductListQueryServiceTest {
         var query = new ProductTileQuery(null, List.of(), List.of(), null, null, null, ProductSort.NEWEST, 3);
 
         assertThat(service.listProducts(query).page()).isEqualTo(3);
+    }
+
+    @Test
+    void sitemap_asks_the_port_at_the_clock_time() {
+        service.sitemap();
+
+        assertThat(sitemapAskedAt).isEqualTo(NOW);
     }
 
     private static ProductTileQuery query(String categorySlug) {
