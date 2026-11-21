@@ -1,4 +1,4 @@
-package com.cadence.catalog.infrastructure.persistence;
+package com.cadence.catalog.infrastructure.adapter;
 
 import java.util.List;
 

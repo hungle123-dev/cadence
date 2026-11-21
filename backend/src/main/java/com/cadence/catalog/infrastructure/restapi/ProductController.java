@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.cadence.catalog.application.dto.ProductSort;
+import com.cadence.catalog.application.port.driving.ProductQueryUseCase;
 import com.cadence.catalog.domain.model.ColorFamily;
 import com.cadence.catalog.domain.model.Gender;
 import com.cadence.catalog.infrastructure.restapi.uidto.ProductDetailResponse;
@@ -34,6 +35,12 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @RestController
 @RequestMapping("/catalog")
 class ProductController {
+
+    private final ProductQueryUseCase products;
+
+    ProductController(ProductQueryUseCase products) {
+        this.products = products;
+    }
 
     @Operation(summary = "PLP: one tile per colorway (CAT-01, CAT-02)", description = """
             Only visible products (R-VIS). A category includes its sub-categories.
@@ -72,7 +79,7 @@ class ProductController {
             content = @Content(mediaType = ApiProblem.MEDIA_TYPE, schema = @Schema(implementation = ApiProblem.class)))
     @GetMapping("/products/{slug}")
     ProductDetailResponse getProduct(@Parameter(example = "tempo-2") @PathVariable String slug) {
-        throw notYetImplemented();
+        return ProductDetailResponse.from(products.getProductDetail(slug));
     }
 
     @Operation(summary = "Slugs for /sitemap.xml (N4, AC 4.6)", description = "Visible products only.")

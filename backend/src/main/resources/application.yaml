@@ -10,6 +10,9 @@ spring:
     open-in-view: false
     hibernate:
       ddl-auto: validate # Hibernate chỉ kiểm tra bảng, không bao giờ tự sửa (ADR-0011)
+    properties:
+      hibernate:
+        default_batch_fetch_size: 50 # tránh N+1: tải con của nhiều cha bằng một câu IN (…)
   flyway:
     locations: classpath:db/migration
     default-schema: flyway # bảng lịch sử của Flyway nằm trong schema riêng
