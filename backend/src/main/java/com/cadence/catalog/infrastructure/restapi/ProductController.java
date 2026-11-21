@@ -14,7 +14,6 @@ import org.springframework.web.server.ResponseStatusException;
 import com.cadence.catalog.application.dto.ProductSort;
 import com.cadence.catalog.application.port.driving.ProductQueryUseCase;
 import com.cadence.catalog.domain.model.ColorFamily;
-import com.cadence.catalog.domain.model.Gender;
 import com.cadence.catalog.infrastructure.restapi.uidto.ProductDetailResponse;
 import com.cadence.catalog.infrastructure.restapi.uidto.ProductTilePageResponse;
 import com.cadence.catalog.infrastructure.restapi.uidto.SitemapResponse;
@@ -22,14 +21,14 @@ import com.cadence.common.web.ApiProblem;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 /**
- * Slice 1a read endpoints (section 7.5). L2: signatures and contract only; every method answers
- * 501 until the use cases exist (L3).
+ * Slice 1a read endpoints (section 7.5): PLP and PDP read the database; the sitemap answers 501 until it is built.
  */
 @Tag(name = CategoryController.TAG)
 @RestController
@@ -58,18 +57,21 @@ class ProductController {
             @RequestParam(required = false) @Nullable String category,
             @Parameter(description = "Repeatable (size=42&size=43); keeps colorways where that size is in stock (R-STOCK)")
             @RequestParam(required = false) @Nullable List<String> size,
-            @Parameter(description = "Repeatable")
-            @RequestParam(required = false) @Nullable List<ColorFamily> color,
-            @Parameter(description = "UNISEX products match both", schema = @Schema(allowableValues = { "MEN", "WOMEN" }))
-            @RequestParam(required = false) @Nullable Gender gender,
+            @Parameter(description = "Repeatable", array = @ArraySchema(schema = @Schema(implementation = ColorFamily.class)))
+            @RequestParam(required = false) @Nullable List<String> color,
+            @Parameter(description = "UNISEX products match both", schema = @Schema(type = "string", allowableValues = { "MEN", "WOMEN" }))
+            @RequestParam(required = false) @Nullable String gender,
             @Parameter(description = "Integer VND, effective price", schema = @Schema(type = "integer", format = "int64", minimum = "0"))
-            @RequestParam(required = false) @Nullable Long minPrice,
+            @RequestParam(required = false) @Nullable String minPrice,
             @Parameter(description = "Integer VND, effective price, >= minPrice", schema = @Schema(type = "integer", format = "int64", minimum = "0"))
-            @RequestParam(required = false) @Nullable Long maxPrice,
-            @RequestParam(defaultValue = "NEWEST") ProductSort sort,
+            @RequestParam(required = false) @Nullable String maxPrice,
+            @Parameter(schema = @Schema(implementation = ProductSort.class, defaultValue = "NEWEST"))
+            @RequestParam(required = false) @Nullable String sort,
             @Parameter(description = "1-based", schema = @Schema(type = "integer", format = "int32", minimum = "1", defaultValue = "1"))
-            @RequestParam(defaultValue = "1") int page) {
-        throw notYetImplemented();
+            @RequestParam(required = false) @Nullable String page) {
+        // Parameters arrive as text so a wrong value becomes CATALOG_INVALID_FILTER, not Spring's generic 400
+        var query = ProductTileQueryParser.toQuery(category, size, color, gender, minPrice, maxPrice, sort, page);
+        return ProductTilePageResponse.from(products.listProducts(query));
     }
 
     @Operation(summary = "PDP with every colorway, image and size (CAT-03)", description = """
