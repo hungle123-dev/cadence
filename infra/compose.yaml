@@ -5,15 +5,15 @@
 
 services:
   postgres:
-    image: postgres:18 # đúng phiên bản đã chọn, không dùng "latest"
-    restart: unless-stopped # tự bật lại khi Docker Desktop khởi động
+    image: postgres:18
+    restart: unless-stopped
     env_file: .env # đưa mật khẩu vào hộp cho db/init/01-roles.sh
     environment:
       POSTGRES_DB: ${DB_NAME:-cadence}
     ports:
-      - "${DB_PORT:-5432}:5432" # cổng trên máy bạn : cổng trong hộp
+      - "${DB_PORT:-5432}:5432"
     volumes:
-      - pgdata:/var/lib/postgresql # dữ liệu nằm ngoài hộp, tắt hộp không mất
+      - pgdata:/var/lib/postgresql
       - ./db/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
@@ -22,8 +22,8 @@ services:
       retries: 10
 
   api:
-    build: ../backend # Compose tự build từ backend/Dockerfile
-    image: cadence-api:dev # tên image sau khi build
+    build: ../backend
+    image: cadence-api:dev
     restart: unless-stopped
     environment:
       SPRING_PROFILES_ACTIVE: local # có seed + log chữ cho máy cá nhân
@@ -34,19 +34,19 @@ services:
       CADENCE_MIGRATOR_PASSWORD: ${CADENCE_MIGRATOR_PASSWORD}
     depends_on:
       postgres:
-        condition: service_healthy # chờ pg_isready báo OK rồi mới chạy
+        condition: service_healthy
 
   web:
-    build: ../frontend # Compose tự build từ frontend/Dockerfile
+    build: ../frontend
     image: cadence-web:dev
     restart: unless-stopped
     environment:
       API_BASE_URL: http://api:8080/api # gọi backend bằng tên service "api"
     depends_on:
-      - api # bật api trước rồi mới bật web
+      - api
 
   nginx:
-    image: nginx:1.28-alpine # ghim phiên bản stable; xem tag mới trên Docker Hub
+    image: nginx:1.28-alpine
     restart: unless-stopped
     ports:
       - "80:80" # cửa duy nhất mở ra ngoài

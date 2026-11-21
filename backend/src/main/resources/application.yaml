@@ -4,7 +4,7 @@ spring:
   # Mọi môi trường dùng chung cấu trúc này; chỉ giá trị biến khác nhau (infra/.env hoặc biến môi trường thật).
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:cadence}
-    username: cadence_app # ứng dụng = nhân viên: chỉ đọc/ghi dữ liệu (ADR-0014)
+    username: cadence_app # chỉ đọc/ghi dữ liệu, không sửa được bảng (ADR-0014)
     password: ${CADENCE_APP_PASSWORD}
   jpa:
     open-in-view: false
@@ -12,8 +12,8 @@ spring:
       ddl-auto: validate # Hibernate chỉ kiểm tra bảng, không bao giờ tự sửa (ADR-0011)
   flyway:
     locations: classpath:db/migration
-    default-schema: flyway # bảng lịch sử của Flyway nằm trong phòng riêng "flyway"
-    user: cadence_migrator # Flyway = thủ kho: được tạo/sửa bảng
+    default-schema: flyway # bảng lịch sử của Flyway nằm trong schema riêng
+    user: cadence_migrator # chỉ Flyway dùng: được tạo/sửa bảng
     password: ${CADENCE_MIGRATOR_PASSWORD}
   mvc:
     problemdetails:
@@ -22,20 +22,20 @@ spring:
 server:
   port: ${SERVER_PORT:8080}
   servlet:
-    # Mọi API (kể cả actuator) nằm dưới /api, khớp với Caddy chuyển /api/* vào backend (ADR-0006)
+    # Mọi API (kể cả actuator) nằm dưới /api, khớp với Nginx chuyển /api/* vào backend (ADR-0006, 0017)
     context-path: /api
 
 management:
   endpoint:
     health:
       probes:
-        enabled: true # bật /health/liveness và /health/readiness
+        enabled: true
       group:
         readiness:
           include: readinessState,db # sẵn sàng = ứng dụng đã khởi động xong + database kết nối được
 
 springdoc:
-  # Swagger UI và /v3/api-docs mặc định TẮT (an toàn cho production, như A1A).
+  # Swagger UI và /v3/api-docs mặc định TẮT (an toàn cho production).
   # Bật bằng SPRINGDOC_ENABLED=true (profile local tự bật; staging đặt biến này).
   api-docs:
     enabled: ${SPRINGDOC_ENABLED:false}
