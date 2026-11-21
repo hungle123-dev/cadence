@@ -20,8 +20,8 @@ import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
 
 /**
- * Architecture rules: template R1–R9, ADR-0001 (module boundaries), ADR-0011 (JPA placement),
- * ADR-0014 (schema per module).
+ * Architecture rules: template R1–R9, ADR-0001 (module boundaries), ADR-0006 (OpenAPI annotations
+ * placement), ADR-0011 (JPA placement), ADR-0014 (schema per module).
  *
  * <p>The rules are written before any business code exists, so most of them have no classes to
  * check yet. {@code allowEmptyShould(true)} keeps them green until the first classes appear.
@@ -132,6 +132,16 @@ class ArchitectureTest {
 			.and().resideInAPackage(module(m) + "..")
 			.should(declareTableSchema(MODULE_SCHEMAS.get(m)))
 			.because("ADR-0014: a module only reads and writes its own schema"));
+
+	// ---------- API documentation (ADR-0006) ----------
+
+	@ArchTest
+	static final ArchRule openapi_annotations_only_in_web_adapters = noClasses()
+			.that().resideOutsideOfPackages(ROOT + "..infrastructure.restapi..", ROOT + ".common.web..")
+			.should().dependOnClassesThat().resideInAnyPackage("io.swagger..", "org.springdoc..")
+			.because("ADR-0006: OpenAPI is a detail of the REST adapter; domain and use cases stay framework-free, "
+					+ "so request/response records that carry @Schema live in infrastructure/restapi")
+			.allowEmptyShould(true);
 
 	// ---------- Helpers ----------
 

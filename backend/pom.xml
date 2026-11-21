@@ -31,6 +31,8 @@
 		<!-- N10: tests run in UTC too (Surefire forks its own JVM, so main() is not involved) -->
 		<argLine>-Duser.timezone=UTC</argLine>
 		<archunit.version>1.5.1</archunit.version>
+		<!-- 3.2.x is built on Spring Boot 4.2; bump together with Boot -->
+		<springdoc.version>3.2.1</springdoc.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -56,6 +58,12 @@
 		<dependency>
 			<groupId>org.flywaydb</groupId>
 			<artifactId>flyway-database-postgresql</artifactId>
+		</dependency>
+		<!-- ADR-0006: OpenAPI generated from controllers (/api/v3/api-docs, Swagger UI) -->
+		<dependency>
+			<groupId>org.springdoc</groupId>
+			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+			<version>${springdoc.version}</version>
 		</dependency>
 
 		<dependency>

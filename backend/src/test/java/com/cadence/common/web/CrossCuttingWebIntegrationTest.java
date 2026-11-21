@@ -2,6 +2,8 @@ package com.cadence.common.web;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.List;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -12,9 +14,14 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import org.springframework.test.web.servlet.assertj.MvcTestResult;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.cadence.TestcontainersConfiguration;
+import com.cadence.common.domain.error.ConflictException;
+import com.cadence.common.domain.error.InvalidParam;
+import com.cadence.common.domain.error.NotFoundException;
+import com.cadence.common.domain.error.ValidationException;
 
 /**
  * S6 cross-cutting web concerns: health probes (readiness includes the database), correlation id
@@ -78,6 +85,24 @@ class CrossCuttingWebIntegrationTest {
 				.hasContentType(MediaType.APPLICATION_PROBLEM_JSON);
 		assertThat(result).bodyJson().extractingPath("$.status").isEqualTo(404);
 		assertThat(result).bodyJson().extractingPath("$.correlationId").isEqualTo("trace-404");
+		assertThat(result).bodyJson().extractingPath("$.code").isEqualTo("NOT_FOUND");
+	}
+
+	@Test
+	void malformed_parameter_returns_a_400_problem_with_code_bad_request() {
+		MvcTestResult result = mvc.get().uri("/test/page?page=abc").exchange();
+
+		assertThat(result).hasStatus(HttpStatus.BAD_REQUEST)
+				.hasContentType(MediaType.APPLICATION_PROBLEM_JSON);
+		assertThat(result).bodyJson().extractingPath("$.code").isEqualTo("BAD_REQUEST");
+	}
+
+	@Test
+	void wrong_http_method_returns_a_405_problem_with_a_code() {
+		MvcTestResult result = mvc.post().uri("/catalog/categories").exchange();
+
+		assertThat(result).hasStatus(HttpStatus.METHOD_NOT_ALLOWED);
+		assertThat(result).bodyJson().extractingPath("$.code").isEqualTo("METHOD_NOT_ALLOWED");
 	}
 
 	@Test
@@ -88,12 +113,82 @@ class CrossCuttingWebIntegrationTest {
 		assertThat(result).hasStatus(HttpStatus.INTERNAL_SERVER_ERROR)
 				.hasContentType(MediaType.APPLICATION_PROBLEM_JSON);
 		assertThat(result).bodyJson().extractingPath("$.correlationId").isEqualTo("trace-500");
+		assertThat(result).bodyJson().extractingPath("$.code").isEqualTo("INTERNAL_ERROR");
 		assertThat(result).bodyText().doesNotContain("secret internal detail").doesNotContain("IllegalStateException");
 	}
 
-	/** Test-only endpoint that fails with an unexpected exception. */
+	// ---------- Business errors (DomainException) ----------
+
+	@Test
+	void not_found_business_error_returns_404_with_its_own_code_and_message() {
+		MvcTestResult result = mvc.get().uri("/test/not-found").exchange();
+
+		assertThat(result).hasStatus(HttpStatus.NOT_FOUND)
+				.hasContentType(MediaType.APPLICATION_PROBLEM_JSON);
+		assertThat(result).bodyJson().extractingPath("$.code").isEqualTo("TEST_THING_NOT_FOUND");
+		assertThat(result).bodyJson().extractingPath("$.detail").isEqualTo("Không tìm thấy");
+		assertThat(result).bodyJson().extractingPath("$.correlationId").isNotNull();
+	}
+
+	@Test
+	void validation_business_error_returns_400_with_invalid_params() {
+		MvcTestResult result = mvc.get().uri("/test/invalid").exchange();
+
+		assertThat(result).hasStatus(HttpStatus.BAD_REQUEST);
+		assertThat(result).bodyJson().extractingPath("$.code").isEqualTo("TEST_INVALID");
+		assertThat(result).bodyJson().extractingPath("$.invalidParams[0].name").isEqualTo("maxPrice");
+		assertThat(result).bodyJson().extractingPath("$.invalidParams[0].reason").isEqualTo("phải lớn hơn minPrice");
+	}
+
+	@Test
+	void conflict_business_error_returns_409() {
+		MvcTestResult result = mvc.get().uri("/test/conflict").exchange();
+
+		assertThat(result).hasStatus(HttpStatus.CONFLICT);
+		assertThat(result).bodyJson().extractingPath("$.code").isEqualTo("TEST_CONFLICT");
+	}
+
+	static class ThingNotFoundException extends NotFoundException {
+		ThingNotFoundException() {
+			super("TEST_THING_NOT_FOUND", "Không tìm thấy");
+		}
+	}
+
+	static class InvalidThingException extends ValidationException {
+		InvalidThingException() {
+			super("TEST_INVALID", "Không hợp lệ", List.of(new InvalidParam("maxPrice", "phải lớn hơn minPrice")));
+		}
+	}
+
+	static class ThingConflictException extends ConflictException {
+		ThingConflictException() {
+			super("TEST_CONFLICT", "Xung đột");
+		}
+	}
+
+	/** Test-only endpoints: unexpected exception, typed parameter, and one per business error kind. */
 	@RestController
 	static class FailingController {
+
+		@GetMapping("/test/not-found")
+		String notFound() {
+			throw new ThingNotFoundException();
+		}
+
+		@GetMapping("/test/invalid")
+		String invalid() {
+			throw new InvalidThingException();
+		}
+
+		@GetMapping("/test/conflict")
+		String conflict() {
+			throw new ThingConflictException();
+		}
+
+		@GetMapping("/test/page")
+		String page(@RequestParam int page) {
+			return "page " + page;
+		}
 
 		@GetMapping("/test/boom")
 		String boom() {
