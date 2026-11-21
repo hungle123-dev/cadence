@@ -34,6 +34,14 @@ management:
         readiness:
           include: readinessState,db # sẵn sàng = ứng dụng đã khởi động xong + database kết nối được
 
+springdoc:
+  # Swagger UI và /v3/api-docs mặc định TẮT (an toàn cho production, như A1A).
+  # Bật bằng SPRINGDOC_ENABLED=true (profile local tự bật; staging đặt biến này).
+  api-docs:
+    enabled: ${SPRINGDOC_ENABLED:false}
+  swagger-ui:
+    enabled: ${SPRINGDOC_ENABLED:false}
+
 logging:
   structured:
     format:
