@@ -19,6 +19,7 @@ import com.cadence.catalog.application.dto.ProductSnapshot;
 import com.cadence.catalog.application.port.driven.ProductDetailReadPort;
 import com.cadence.catalog.application.service.ProductDetailViewAssembler;
 import com.cadence.catalog.application.service.ProductQueryService;
+import com.cadence.catalog.application.service.ProductTileViewAssembler;
 import com.cadence.catalog.domain.exception.ProductNotFoundException;
 import com.cadence.catalog.domain.model.ProductPublication;
 import com.cadence.catalog.domain.model.ProductStatus;
@@ -70,6 +71,7 @@ class ProductQueryServiceTest {
     /** Fake port holding one stored product, a real assembler, and a clock frozen at `now`. */
     private static ProductQueryService serviceWith(ProductSnapshot stored, Instant now) {
         ProductDetailReadPort products = slug -> slug.equals(stored.slug()) ? Optional.of(stored) : Optional.empty();
-        return new ProductQueryService(products, new ProductDetailViewAssembler(CATEGORIES), Clock.fixed(now, ZoneOffset.UTC));
+        return new ProductQueryService(products, new ProductDetailViewAssembler(CATEGORIES), new RecordingTileReadPort(),
+                CATEGORIES, new ProductTileViewAssembler(), Clock.fixed(now, ZoneOffset.UTC));
     }
 }

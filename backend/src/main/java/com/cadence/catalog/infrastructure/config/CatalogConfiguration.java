@@ -4,16 +4,20 @@ import java.time.Clock;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.core.simple.JdbcClient;
 
 import com.cadence.catalog.application.port.driven.CategoryReadPort;
 import com.cadence.catalog.application.port.driven.ProductDetailReadPort;
+import com.cadence.catalog.application.port.driven.ProductTileReadPort;
 import com.cadence.catalog.application.port.driving.ListCategoriesUseCase;
 import com.cadence.catalog.application.port.driving.ProductQueryUseCase;
 import com.cadence.catalog.application.service.ListCategoriesService;
 import com.cadence.catalog.application.service.ProductDetailViewAssembler;
 import com.cadence.catalog.application.service.ProductQueryService;
+import com.cadence.catalog.application.service.ProductTileViewAssembler;
 import com.cadence.catalog.infrastructure.adapter.CategoryReadAdapter;
 import com.cadence.catalog.infrastructure.adapter.ProductDetailReadAdapter;
+import com.cadence.catalog.infrastructure.adapter.ProductTileReadAdapter;
 import com.cadence.catalog.infrastructure.persistence.repository.CategoryJpaRepository;
 import com.cadence.catalog.infrastructure.persistence.repository.ProductJpaRepository;
 import com.cadence.catalog.infrastructure.persistence.repository.VariantStockFlagJpaRepository;
@@ -34,6 +38,11 @@ class CatalogConfiguration {
         return new ProductDetailReadAdapter(products, stockFlags);
     }
 
+    @Bean
+    ProductTileReadPort productTileReadPort(JdbcClient jdbc) {
+        return new ProductTileReadAdapter(jdbc);
+    }
+
     // ---------- Driving ports -> services ----------
 
     @Bean
@@ -42,7 +51,9 @@ class CatalogConfiguration {
     }
 
     @Bean
-    ProductQueryUseCase productQueryUseCase(ProductDetailReadPort products, CategoryReadPort categories, Clock clock) {
-        return new ProductQueryService(products, new ProductDetailViewAssembler(categories), clock);
+    ProductQueryUseCase productQueryUseCase(ProductDetailReadPort products, ProductTileReadPort tiles,
+            CategoryReadPort categories, Clock clock) {
+        return new ProductQueryService(products, new ProductDetailViewAssembler(categories), tiles, categories,
+                new ProductTileViewAssembler(), clock);
     }
 }
