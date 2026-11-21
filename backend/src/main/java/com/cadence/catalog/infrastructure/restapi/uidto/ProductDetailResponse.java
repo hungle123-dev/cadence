@@ -3,6 +3,8 @@ package com.cadence.catalog.infrastructure.restapi.uidto;
 import java.util.List;
 import java.util.Map;
 
+import com.cadence.catalog.application.dto.ProductDetailView;
+import com.cadence.catalog.application.dto.ProductSnapshot;
 import com.cadence.catalog.domain.model.ColorFamily;
 import com.cadence.catalog.domain.model.Gender;
 import com.cadence.catalog.domain.model.ProductType;
@@ -22,6 +24,13 @@ public record ProductDetailResponse(
         @Schema(description = "Root category first") List<BreadcrumbItem> breadcrumb,
         @Schema(description = "Ordered by position; the first is the default (AC 3.9)") List<ColorwayDetail> colorways) {
 
+    public static ProductDetailResponse from(ProductDetailView view) {
+        return new ProductDetailResponse(
+                view.slug(), view.name(), view.description(), view.type(), view.gender(), view.specs(),
+                view.breadcrumb().stream().map(b -> new BreadcrumbItem(b.slug(), b.name())).toList(),
+                view.colorways().stream().map(ColorwayDetail::from).toList());
+    }
+
     @Schema(name = "ColorwayDetail")
     public record ColorwayDetail(
             @Schema(description = "Used in the web URL ?mau=", example = "den") String slug,
@@ -31,6 +40,12 @@ public record ProductDetailResponse(
             boolean inStock,
             List<ImageResponse> images,
             @Schema(description = "In size_order") List<SizeOption> sizes) {
+
+        static ColorwayDetail from(ProductDetailView.Colorway c) {
+            return new ColorwayDetail(c.slug(), c.name(), c.colorFamily(), PriceResponse.from(c.price()), c.inStock(),
+                    c.images().stream().map(ImageResponse::from).toList(),
+                    c.sizes().stream().map(SizeOption::from).toList());
+        }
     }
 
     @Schema(name = "SizeOption")
@@ -38,6 +53,10 @@ public record ProductDetailResponse(
             @Schema(example = "CAD-TEMPO2-BLK-42") String sku,
             @Schema(example = "42") String size,
             @Schema(description = "Out-of-stock sizes are shown but locked (AC 3.3)") boolean inStock) {
+
+        static SizeOption from(ProductSnapshot.Size s) {
+            return new SizeOption(s.sku(), s.size(), s.inStock());
+        }
     }
 
     @Schema(name = "BreadcrumbItem")
