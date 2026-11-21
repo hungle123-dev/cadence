@@ -39,7 +39,7 @@ class MigrationSchemaTest {
 					problems.add(file + ": must live in a module folder (db/migration/<module>/)");
 					continue;
 				}
-				String sql = Files.readString(file).replaceAll("--[^\\n]*", ""); // bỏ comment
+				String sql = Files.readString(file).replaceAll("--[^\\n]*", "");
 				Matcher m = SCHEMA_REF.matcher(sql);
 				while (m.find()) {
 					String schema = (m.group(1) != null ? m.group(1) : m.group(2)).toLowerCase();

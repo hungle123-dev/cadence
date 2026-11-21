@@ -15,7 +15,6 @@ export default function HomePage() {
   );
 }
 
-// Server Component: chạy trên server, gọi API, trả về HTML đã có sẵn dữ liệu.
 async function CategoryList() {
   const categories = await getCategories();
   const roots = categories.filter((c) => c.depth === 1);
