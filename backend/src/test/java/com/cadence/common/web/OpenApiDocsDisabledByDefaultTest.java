@@ -17,16 +17,16 @@ import com.cadence.TestcontainersConfiguration;
 @Import(TestcontainersConfiguration.class)
 class OpenApiDocsDisabledByDefaultTest {
 
-	@Autowired
-	MockMvcTester mvc;
+    @Autowired
+    MockMvcTester mvc;
 
-	@Test
-	void api_docs_are_not_served() {
-		assertThat(mvc.get().uri("/v3/api-docs")).hasStatus4xxClientError();
-	}
+    @Test
+    void api_docs_are_not_served() {
+        assertThat(mvc.get().uri("/v3/api-docs")).hasStatus4xxClientError();
+    }
 
-	@Test
-	void swagger_ui_is_not_served() {
-		assertThat(mvc.get().uri("/swagger-ui/index.html")).hasStatus4xxClientError();
-	}
+    @Test
+    void swagger_ui_is_not_served() {
+        assertThat(mvc.get().uri("/swagger-ui/index.html")).hasStatus4xxClientError();
+    }
 }

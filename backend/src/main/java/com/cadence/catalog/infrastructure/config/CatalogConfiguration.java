@@ -10,9 +10,9 @@ import com.cadence.catalog.application.port.driven.CategoryReadPort;
 import com.cadence.catalog.application.port.driven.ProductDetailReadPort;
 import com.cadence.catalog.application.port.driven.ProductTileReadPort;
 import com.cadence.catalog.application.port.driven.SitemapReadPort;
-import com.cadence.catalog.application.port.driving.ListCategoriesUseCase;
+import com.cadence.catalog.application.port.driving.CategoryQueryUseCase;
 import com.cadence.catalog.application.port.driving.ProductQueryUseCase;
-import com.cadence.catalog.application.service.ListCategoriesService;
+import com.cadence.catalog.application.service.CategoryQueryService;
 import com.cadence.catalog.application.service.ProductDetailViewAssembler;
 import com.cadence.catalog.application.service.ProductQueryService;
 import com.cadence.catalog.application.service.ProductTileViewAssembler;
@@ -31,13 +31,14 @@ class CatalogConfiguration {
     // ---------- Driven ports -> adapters ----------
 
     @Bean
-    CategoryReadPort categoryReadPort(CategoryJpaRepository repository) {
-        return new CategoryReadAdapter(repository);
+    CategoryReadPort categoryReadPort(CategoryJpaRepository categoryRepository) {
+        return new CategoryReadAdapter(categoryRepository);
     }
 
     @Bean
-    ProductDetailReadPort productDetailReadPort(ProductJpaRepository products, VariantStockFlagJpaRepository stockFlags) {
-        return new ProductDetailReadAdapter(products, stockFlags);
+    ProductDetailReadPort productDetailReadPort(ProductJpaRepository productRepository,
+            VariantStockFlagJpaRepository stockFlagRepository) {
+        return new ProductDetailReadAdapter(productRepository, stockFlagRepository);
     }
 
     @Bean
@@ -53,14 +54,14 @@ class CatalogConfiguration {
     // ---------- Driving ports -> services ----------
 
     @Bean
-    ListCategoriesUseCase listCategoriesUseCase(CategoryReadPort categoryReadPort) {
-        return new ListCategoriesService(categoryReadPort);
+    CategoryQueryUseCase categoryQueryUseCase(CategoryReadPort categories) {
+        return new CategoryQueryService(categories);
     }
 
     @Bean
-    ProductQueryUseCase productQueryUseCase(ProductDetailReadPort products, ProductTileReadPort tiles,
-            CategoryReadPort categories, SitemapReadPort sitemap, Clock clock) {
-        return new ProductQueryService(products, new ProductDetailViewAssembler(categories), tiles, categories,
-                new ProductTileViewAssembler(), sitemap, clock);
+    ProductQueryUseCase productQueryUseCase(ProductDetailReadPort productDetails, ProductTileReadPort productTiles,
+            CategoryReadPort categories, SitemapReadPort sitemapEntries, Clock clock) {
+        return new ProductQueryService(productDetails, new ProductDetailViewAssembler(categories), productTiles,
+                categories, new ProductTileViewAssembler(), sitemapEntries, clock);
     }
 }

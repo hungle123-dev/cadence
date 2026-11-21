@@ -6,7 +6,7 @@ import java.util.UUID;
 
 import com.cadence.catalog.application.dto.ProductTilePageView;
 import com.cadence.catalog.application.dto.ProductTileQuery;
-import com.cadence.catalog.application.dto.ProductTileSearchResult;
+import com.cadence.catalog.application.dto.ProductTileSnapshotPage;
 
 public interface ProductTileReadPort {
 
@@ -15,7 +15,7 @@ public interface ProductTileReadPort {
      * R-PRICE (price filter and sort) in SQL, because paging needs the filtered total.
      * An empty categoryIds means every category.
      */
-    ProductTileSearchResult search(ProductTileQuery query, Set<UUID> categoryIds, Instant now);
+    ProductTileSnapshotPage findTiles(ProductTileQuery query, Set<UUID> categoryIds, Instant now);
 
     /** Filter values of those categories, not narrowed by the current filters (A1). */
     ProductTilePageView.FilterOptions findFilterOptions(Set<UUID> categoryIds, Instant now);

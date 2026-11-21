@@ -35,7 +35,7 @@ class SitemapReadAdapterIntegrationTest {
 
     @Test
     void only_visible_products_in_slug_order() {
-        var slugs = port.find(NOW).products().stream().map(SitemapView.Entry::slug).toList();
+        var slugs = port.findSitemapEntries(NOW).products().stream().map(SitemapView.Entry::slug).toList();
 
         // draft-x (draft) and sched-future (tomorrow) stay out; sched-past went live a minute ago
         assertThat(slugs).containsExactly("bulk", "run-a", "run-b", "run-c", "sched-past");
@@ -43,7 +43,7 @@ class SitemapReadAdapterIntegrationTest {
 
     @Test
     void every_category_even_empty_ones() {
-        var slugs = port.find(NOW).categories().stream().map(SitemapView.Entry::slug).toList();
+        var slugs = port.findSitemapEntries(NOW).categories().stream().map(SitemapView.Entry::slug).toList();
 
         assertThat(slugs).containsExactly("ao-chay-bo", "ao-thun", "giay", "giay-chay-bo", "giay-lifestyle", "quan-ao");
     }
@@ -55,8 +55,8 @@ class SitemapReadAdapterIntegrationTest {
                 .param("at", OffsetDateTime.of(2026, 11, 1, 0, 0, 0, 0, ZoneOffset.UTC))
                 .update();
 
-        var schedPast = port.find(NOW).products().stream()
-                .filter(e -> e.slug().equals("sched-past"))
+        var schedPast = port.findSitemapEntries(NOW).products().stream()
+                .filter(entry -> entry.slug().equals("sched-past"))
                 .findFirst()
                 .orElseThrow();
 
@@ -69,8 +69,8 @@ class SitemapReadAdapterIntegrationTest {
                 .param("at", OffsetDateTime.of(2026, 12, 2, 8, 0, 0, 0, ZoneOffset.UTC))
                 .update();
 
-        var runA = port.find(NOW).products().stream()
-                .filter(e -> e.slug().equals("run-a"))
+        var runA = port.findSitemapEntries(NOW).products().stream()
+                .filter(entry -> entry.slug().equals("run-a"))
                 .findFirst()
                 .orElseThrow();
 

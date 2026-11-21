@@ -91,7 +91,7 @@ class ProductListQueryServiceTest {
 
     @Test
     void sitemap_asks_the_port_at_the_clock_time() {
-        service.sitemap();
+        service.getSitemap();
 
         assertThat(sitemapAskedAt).isEqualTo(NOW);
     }

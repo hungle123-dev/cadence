@@ -33,10 +33,10 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @RequestMapping("/catalog")
 class ProductController {
 
-    private final ProductQueryUseCase products;
+    private final ProductQueryUseCase productQueries;
 
-    ProductController(ProductQueryUseCase products) {
-        this.products = products;
+    ProductController(ProductQueryUseCase productQueries) {
+        this.productQueries = productQueries;
     }
 
     @Operation(summary = "PLP: one tile per colorway (CAT-01, CAT-02)", description = """
@@ -69,7 +69,7 @@ class ProductController {
             @RequestParam(required = false) @Nullable String page) {
         // Parameters arrive as text so a wrong value becomes CATALOG_INVALID_FILTER, not Spring's generic 400
         var query = ProductTileQueryParser.toQuery(category, size, color, gender, minPrice, maxPrice, sort, page);
-        return ProductTilePageResponse.from(products.listProducts(query));
+        return ProductTilePageResponse.from(productQueries.listProducts(query));
     }
 
     @Operation(summary = "PDP with every colorway, image and size (CAT-03)", description = """
@@ -79,13 +79,13 @@ class ProductController {
             content = @Content(mediaType = ApiProblem.MEDIA_TYPE, schema = @Schema(implementation = ApiProblem.class)))
     @GetMapping("/products/{slug}")
     ProductDetailResponse getProduct(@Parameter(example = "tempo-2") @PathVariable String slug) {
-        return ProductDetailResponse.from(products.getProductDetail(slug));
+        return ProductDetailResponse.from(productQueries.getProductDetail(slug));
     }
 
     @Operation(summary = "Slugs for /sitemap.xml (N4, AC 4.6)", description = "Visible products only.")
     @ApiResponse(responseCode = "200", description = "OK")
     @GetMapping("/sitemap")
-    SitemapResponse sitemap() {
-        return SitemapResponse.from(products.sitemap());
+    SitemapResponse getSitemap() {
+        return SitemapResponse.from(productQueries.getSitemap());
     }
 }

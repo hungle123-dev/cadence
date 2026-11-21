@@ -22,32 +22,32 @@ import com.cadence.catalog.domain.exception.ProductNotFoundException;
 /** Reads of products. Applies R-VIS: a hidden product answers exactly like a missing one (A7). */
 public class ProductQueryService implements ProductQueryUseCase {
 
-    private final ProductDetailReadPort products;
-    private final ProductDetailViewAssembler assembler;
-    private final ProductTileReadPort tiles;
+    private final ProductDetailReadPort productDetails;
+    private final ProductDetailViewAssembler detailAssembler;
+    private final ProductTileReadPort productTiles;
     private final CategoryReadPort categories;
     private final ProductTileViewAssembler tileAssembler;
-    private final SitemapReadPort sitemap;
+    private final SitemapReadPort sitemapEntries;
     private final Clock clock;
 
-    public ProductQueryService(ProductDetailReadPort products, ProductDetailViewAssembler assembler,
-            ProductTileReadPort tiles, CategoryReadPort categories, ProductTileViewAssembler tileAssembler,
-            SitemapReadPort sitemap, Clock clock) {
-        this.products = products;
-        this.assembler = assembler;
-        this.tiles = tiles;
+    public ProductQueryService(ProductDetailReadPort productDetails, ProductDetailViewAssembler detailAssembler,
+            ProductTileReadPort productTiles, CategoryReadPort categories, ProductTileViewAssembler tileAssembler,
+            SitemapReadPort sitemapEntries, Clock clock) {
+        this.productDetails = productDetails;
+        this.detailAssembler = detailAssembler;
+        this.productTiles = productTiles;
         this.categories = categories;
         this.tileAssembler = tileAssembler;
-        this.sitemap = sitemap;
+        this.sitemapEntries = sitemapEntries;
         this.clock = clock;
     }
 
     @Override
     public ProductDetailView getProductDetail(String slug) {
         Instant now = clock.instant(); // one moment for both R-VIS and R-PRICE
-        return products.findBySlug(slug)
+        return productDetails.findBySlug(slug)
                 .filter(product -> product.publication().isVisibleAt(now))
-                .map(product -> assembler.toView(product, now))
+                .map(product -> detailAssembler.toView(product, now))
                 .orElseThrow(ProductNotFoundException::new);
     }
 
@@ -55,14 +55,14 @@ public class ProductQueryService implements ProductQueryUseCase {
     public ProductTilePageView listProducts(ProductTileQuery query) {
         Instant now = clock.instant(); // one moment for R-VIS, R-PRICE and the filter options
         Set<UUID> categoryIds = query.categorySlug() == null ? Set.of() : categoryIdsWithChildren(query.categorySlug());
-        var result = tiles.search(query, categoryIds, now);
-        var filters = tiles.findFilterOptions(categoryIds, now);
-        return tileAssembler.toView(result, filters, query.page(), now);
+        var tilePage = productTiles.findTiles(query, categoryIds, now);
+        var filters = productTiles.findFilterOptions(categoryIds, now);
+        return tileAssembler.toView(tilePage, filters, query.page(), now);
     }
 
     @Override
-    public SitemapView sitemap() {
-        return sitemap.find(clock.instant());
+    public SitemapView getSitemap() {
+        return sitemapEntries.findSitemapEntries(clock.instant());
     }
 
     /** The category and every category below it, at any depth (AC 1.2). */

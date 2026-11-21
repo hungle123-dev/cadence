@@ -20,7 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.cadence.catalog.application.dto.ProductSnapshot;
 import com.cadence.catalog.application.dto.ProductTilePageView;
 import com.cadence.catalog.application.dto.ProductTileQuery;
-import com.cadence.catalog.application.dto.ProductTileSearchResult;
+import com.cadence.catalog.application.dto.ProductTileSnapshotPage;
 import com.cadence.catalog.application.port.driven.ProductTileReadPort;
 import com.cadence.catalog.domain.model.ColorFamily;
 import com.cadence.catalog.domain.model.ColorwayPricing;
@@ -76,7 +76,7 @@ public class ProductTileReadAdapter implements ProductTileReadPort {
             ) i ON true
             """.formatted(ANY_SIZE_IN_STOCK, FROM);
 
-    /** AC 2.12: sizes in size_order, not alphabetical; only sizes someone can still buy (Q1). */
+    /** AC 2.12: sizes in size_order, not alphabetical; only sizes someone can still buy (A11). */
     private static final String SIZES_IN_STOCK = """
             SELECT v.size
             FROM catalog.variants v
@@ -88,7 +88,7 @@ public class ProductTileReadAdapter implements ProductTileReadPort {
             ORDER BY min(v.size_order), v.size
             """;
 
-    /** One row, even for an empty category: aggregates over no rows give NULL (Q3). */
+    /** One row, even for an empty category: aggregates over no rows give NULL (A13). */
     private static final String OTHER_OPTIONS = """
             SELECT array_agg(DISTINCT c.color_family)        AS colors,
                    bool_or(p.gender IN ('MEN', 'UNISEX'))    AS for_men,
@@ -110,7 +110,7 @@ public class ProductTileReadAdapter implements ProductTileReadPort {
     /** Count, then page; REPEATABLE READ makes both read the same snapshot, so the total matches the page. */
     @Override
     @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
-    public ProductTileSearchResult search(ProductTileQuery query, Set<UUID> categoryIds, Instant now) {
+    public ProductTileSnapshotPage findTiles(ProductTileQuery query, Set<UUID> categoryIds, Instant now) {
         Where where = where(query, categoryIds, now);
 
         long totalItems = jdbc.sql("SELECT count(*) " + FROM + "WHERE " + where.sql())
@@ -118,7 +118,7 @@ public class ProductTileReadAdapter implements ProductTileReadPort {
                 .query(Long.class)
                 .single();
 
-        List<ProductTileSearchResult.Tile> tiles = jdbc.sql(SELECT_TILES
+        List<ProductTileSnapshotPage.Tile> tiles = jdbc.sql(SELECT_TILES
                         + "WHERE " + where.sql()
                         + "\nORDER BY " + orderBy(query)
                         + "\nLIMIT :limit OFFSET :offset")
@@ -128,7 +128,7 @@ public class ProductTileReadAdapter implements ProductTileReadPort {
                 .query((rs, rowNum) -> toTile(rs))
                 .list();
 
-        return new ProductTileSearchResult(tiles, totalItems);
+        return new ProductTileSnapshotPage(tiles, totalItems);
     }
 
     /** Filter values of the categories (A1): not narrowed by the current filters, so the panel never jumps. */
@@ -192,13 +192,13 @@ public class ProductTileReadAdapter implements ProductTileReadPort {
 
     // ---------- (4) one row -> one Tile ----------
 
-    private static ProductTileSearchResult.Tile toTile(ResultSet rs) throws SQLException {
+    private static ProductTileSnapshotPage.Tile toTile(ResultSet rs) throws SQLException {
         Sale sale = rs.getObject("sale_price") == null ? null
                 : new Sale(rs.getLong("sale_price"), instant(rs, "sale_starts_at"), instant(rs, "sale_ends_at"));
         ProductSnapshot.Image image = rs.getString("storage_key") == null ? null
                 : new ProductSnapshot.Image(rs.getString("storage_key"), rs.getString("alt"),
                         rs.getInt("width"), rs.getInt("height"));
-        return new ProductTileSearchResult.Tile(
+        return new ProductTileSnapshotPage.Tile(
                 rs.getString("product_slug"),
                 rs.getString("colorway_slug"),
                 rs.getString("product_name"),
@@ -218,7 +218,7 @@ public class ProductTileReadAdapter implements ProductTileReadPort {
                         .sorted() // enum order: BLACK, WHITE, GREY…
                         .toList();
 
-        List<Gender> genders = new ArrayList<>(); // only filterable values (Q2)
+        List<Gender> genders = new ArrayList<>(); // only filterable values (A12)
         if (rs.getBoolean("for_men")) {
             genders.add(Gender.MEN);
         }
@@ -226,7 +226,7 @@ public class ProductTileReadAdapter implements ProductTileReadPort {
             genders.add(Gender.WOMEN);
         }
 
-        // getLong reads NULL as 0, which is exactly the empty-category range (Q3)
+        // getLong reads NULL as 0, which is exactly the empty-category range (A13)
         var priceRange = new ProductTilePageView.PriceRange(rs.getLong("min_price"), rs.getLong("max_price"));
         return new ProductTilePageView.FilterOptions(sizes, colors, List.copyOf(genders), priceRange);
     }

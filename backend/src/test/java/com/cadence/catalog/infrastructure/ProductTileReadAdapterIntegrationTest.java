@@ -19,7 +19,7 @@ import com.cadence.TestcontainersConfiguration;
 import com.cadence.catalog.application.dto.ProductSort;
 import com.cadence.catalog.application.dto.ProductTilePageView;
 import com.cadence.catalog.application.dto.ProductTileQuery;
-import com.cadence.catalog.application.dto.ProductTileSearchResult;
+import com.cadence.catalog.application.dto.ProductTileSnapshotPage;
 import com.cadence.catalog.application.port.driven.ProductTileReadPort;
 import com.cadence.catalog.domain.model.ColorFamily;
 import com.cadence.catalog.domain.model.Gender;
@@ -236,21 +236,21 @@ class ProductTileReadAdapterIntegrationTest {
 
     // ---------- Helpers ----------
 
-    private ProductTileSearchResult search(Set<UUID> categoryIds, Filter filter) {
-        return port.search(filter.toQuery(), categoryIds, NOW);
+    private ProductTileSnapshotPage search(Set<UUID> categoryIds, Filter filter) {
+        return port.findTiles(filter.toQuery(), categoryIds, NOW);
     }
 
-    private static List<String> keys(ProductTileSearchResult result) {
-        return result.tiles().stream().map(t -> t.productSlug() + "/" + t.colorwaySlug()).toList();
+    private static List<String> keys(ProductTileSnapshotPage result) {
+        return result.tiles().stream().map(tile -> tile.productSlug() + "/" + tile.colorwaySlug()).toList();
     }
 
-    private static Set<String> productSlugs(ProductTileSearchResult result) {
-        return new HashSet<>(result.tiles().stream().map(ProductTileSearchResult.Tile::productSlug).toList());
+    private static Set<String> productSlugs(ProductTileSnapshotPage result) {
+        return new HashSet<>(result.tiles().stream().map(ProductTileSnapshotPage.Tile::productSlug).toList());
     }
 
-    private static ProductTileSearchResult.Tile tile(ProductTileSearchResult result, String key) {
+    private static ProductTileSnapshotPage.Tile tile(ProductTileSnapshotPage result, String key) {
         return result.tiles().stream()
-                .filter(t -> (t.productSlug() + "/" + t.colorwaySlug()).equals(key))
+                .filter(tile -> (tile.productSlug() + "/" + tile.colorwaySlug()).equals(key))
                 .findFirst()
                 .orElseThrow(() -> new AssertionError("no tile " + key + " in " + keys(result)));
     }

@@ -9,20 +9,20 @@ import com.cadence.catalog.infrastructure.persistence.repository.CategoryJpaRepo
 
 public class CategoryReadAdapter implements CategoryReadPort {
 
-    private final CategoryJpaRepository repository;
+    private final CategoryJpaRepository categoryRepository;
 
-    public CategoryReadAdapter(CategoryJpaRepository repository) {
-        this.repository = repository;
+    public CategoryReadAdapter(CategoryJpaRepository categoryRepository) {
+        this.categoryRepository = categoryRepository;
     }
 
     @Override
     public List<CategoryView> findAllOrdered() {
-        return repository.findAllByOrderByDepthAscPositionAsc().stream()
+        return categoryRepository.findAllByOrderByDepthAscPositionAsc().stream()
                 .map(CategoryReadAdapter::toView)
                 .toList();
     }
 
-    private static CategoryView toView(CategoryJpaEntity e) {
-        return new CategoryView(e.getId(), e.getParentId(), e.getSlug(), e.getName(), e.getDepth(), e.getPosition());
+    private static CategoryView toView(CategoryJpaEntity entity) {
+        return new CategoryView(entity.getId(), entity.getParentId(), entity.getSlug(), entity.getName(), entity.getDepth(), entity.getPosition());
     }
 }
