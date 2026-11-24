@@ -23,6 +23,10 @@ updates:
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
+    groups:
+      # react-dom x.y.z requires react x.y.z: one pull request for both, or npm ci fails (ERESOLVE)
+      react:
+        patterns: ["react", "react-dom", "@types/react", "@types/react-dom"]
 
   - package-ecosystem: docker
     directories: [/backend, /frontend]
