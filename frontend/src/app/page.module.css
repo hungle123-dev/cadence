@@ -1,0 +1,29 @@
+.hero {
+  padding-block: var(--s-9);
+  display: grid;
+  gap: var(--s-5);
+}
+
+.lead {
+  font-size: var(--fs-h3);
+  color: var(--muted);
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--r-pill);
+  background: var(--line-strong);
+}
+
+.status[data-status="UP"] .dot { background: var(--success); }
+.status[data-status="DOWN"] .dot,
+.status[data-status="UNREACHABLE"] .dot { background: var(--danger); }

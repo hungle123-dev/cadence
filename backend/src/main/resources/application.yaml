@@ -1,0 +1,55 @@
+# Cấu hình chung. Bí mật (mật khẩu DB, khoá VNPay) chỉ đọc từ biến môi trường, không ghi vào file.
+spring:
+  application:
+    name: cadence
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/cadence}
+    username: ${DB_APP_USER:cadence_app}
+    password: ${DB_APP_PASSWORD:}
+  flyway:
+    # Migration chạy bằng role sở hữu schema; ứng dụng chạy bằng role chỉ có quyền DML (database mục 6)
+    user: ${DB_OWNER_USER:${spring.datasource.username}}
+    password: ${DB_OWNER_PASSWORD:${spring.datasource.password}}
+    locations: classpath:db/migration
+  jpa:
+    open-in-view: false                  # không giữ kết nối DB suốt request
+    hibernate:
+      ddl-auto: validate                 # Hibernate chỉ kiểm bảng, không tự tạo
+    properties:
+      hibernate.default_batch_fetch_size: 50
+      hibernate.jdbc.time_zone: UTC
+  mvc:
+    problemdetails:
+      enabled: true
+  threads:
+    virtual:
+      enabled: true
+
+server:
+  port: ${SERVER_PORT:8080}            # đổi khi cổng 8080 trên máy đã bị chiếm
+  shutdown: graceful
+  forward-headers-strategy: framework    # chạy sau Nginx
+  servlet:
+    context-path: /api
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+      probes:
+        enabled: true
+
+logging:
+  structured:
+    format:
+      console: ecs                       # log JSON có cấu trúc (NFR-REL-02)
+
+springdoc:
+  api-docs:
+    enabled: ${API_DOCS_ENABLED:false}   # bật khi dev
+  swagger-ui:
+    enabled: ${API_DOCS_ENABLED:false}

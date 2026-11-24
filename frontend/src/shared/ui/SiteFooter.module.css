@@ -1,0 +1,10 @@
+.footer {
+  margin-top: var(--s-9);
+  padding-block: var(--s-6);
+  background: var(--ink);
+  color: var(--on-ink-2);
+}
+
+.copy {
+  font-size: var(--fs-sm);
+}

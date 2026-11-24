@@ -1,0 +1,20 @@
+# Profile chạy ở máy local cùng `docker compose up db mail`. Mật khẩu ở đây chỉ dùng cho máy local.
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:${DB_PORT:5432}/cadence
+    username: cadence_app
+    password: cadence_app_dev
+  flyway:
+    user: cadence_owner
+    password: cadence_owner_dev
+
+logging:
+  structured:
+    format:
+      console: ""                        # log dạng chữ cho dễ đọc khi dev
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true

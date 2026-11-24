@@ -1,0 +1,64 @@
+# Production / demo server (architecture 11). Images are built and pushed by CI; the server only pulls.
+# Lives at /opt/cadence on the VPS next to a .env with real secrets (see deploy/README.md).
+name: cadence
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
+      DB_OWNER_PASSWORD: ${DB_OWNER_PASSWORD:?}
+      DB_APP_PASSWORD: ${DB_APP_PASSWORD:?}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./postgres/init.sh:/docker-entrypoint-initdb.d/init.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d cadence"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  backend:
+    image: ghcr.io/${GHCR_OWNER:?}/cadence-backend:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/cadence
+      DB_APP_USER: cadence_app
+      DB_APP_PASSWORD: ${DB_APP_PASSWORD}
+      DB_OWNER_USER: cadence_owner
+      DB_OWNER_PASSWORD: ${DB_OWNER_PASSWORD}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    image: ghcr.io/${GHCR_OWNER:?}/cadence-frontend:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    environment:
+      API_INTERNAL_URL: http://backend:8080/api
+    depends_on:
+      backend:
+        condition: service_healthy   # page renders call the backend
+
+  nginx:
+    image: nginx:1.30.8-alpine        # stable branch; Dependabot proposes updates
+    restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN:?}
+    volumes:
+      - ./nginx/prod.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ./nginx/snippets:/etc/nginx/snippets:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /var/www/certbot:/var/www/certbot:ro
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      frontend:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+
+volumes:
+  db-data:

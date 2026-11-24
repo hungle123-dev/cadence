@@ -1,0 +1,21 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.iml
+
+# Logs
+*.log
+
+prototype
+
+# Local-only notes (learning notes, phase planning, personal template)
+docs/notes/
+docs/05-milestones.md
+docs/backend-template.md

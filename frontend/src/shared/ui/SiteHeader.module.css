@@ -1,0 +1,19 @@
+.header {
+  border-bottom: 1px solid var(--line);
+  background: var(--bg);
+}
+
+.inner {
+  display: flex;
+  align-items: center;
+  height: var(--header-h);
+}
+
+.logo {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 800;
+  font-size: 1.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
