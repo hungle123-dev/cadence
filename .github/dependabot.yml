@@ -1,5 +1,9 @@
 # Image tags and library versions are pinned (reproducible builds). Dependabot opens a pull request
 # each week when a newer version exists, so pins do not go stale; CI must pass before merging.
+#
+# Only minor and patch updates are proposed automatically. Major upgrades (Node 26, TypeScript 7,
+# ESLint 10, …) can break builds and often need changes in several places at once (.nvmrc,
+# Dockerfile, @types/node), so they are done by hand when there is time to test them.
 version: 2
 updates:
   - package-ecosystem: maven
@@ -7,24 +11,43 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: npm
     directory: /frontend
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: docker
     directories: [/backend, /frontend]
     schedule:
       interval: weekly
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: docker-compose
     directories: [/, /deploy]
     schedule:
       interval: weekly
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+      # Nginx: even minor = stable (1.30), odd minor = mainline (1.31). Stay on the stable branch:
+      # take patch releases only, move to the next stable branch by hand.
+      - dependency-name: "nginx"
+        update-types: ["version-update:semver-minor"]
 
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
