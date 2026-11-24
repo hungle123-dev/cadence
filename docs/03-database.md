@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| **Phiên bản tài liệu** | 1.1 |
+| **Phiên bản tài liệu** | 1.2 |
 | **Trạng thái** | Đã duyệt (baseline). Mọi thay đổi sau này ghi vào lịch sử thay đổi |
-| **Căn cứ** | [`01-srs.md`](01-srs.md) v1.4, [`02-architecture.md`](02-architecture.md) v1.1 |
+| **Căn cứ** | [`01-srs.md`](01-srs.md) v1.5, [`02-architecture.md`](02-architecture.md) v1.4 |
 | **CSDL** | PostgreSQL 17 |
 
 ### Lịch sử thay đổi
@@ -15,6 +15,7 @@
 | 0.2 | 2026-11-24 | Thêm 3 index còn thiếu (variants theo sản phẩm, hoàn tiền theo đơn, sổ địa chỉ theo khách); outbox nhận việc bằng lease, không giữ transaction khi gọi SMTP (5.4); thêm mục 5.5 ranh giới transaction |
 | 1.0 | 2026-11-24 | Chốt baseline |
 | 1.1 | 2026-11-24 | Theo SRS v1.4: giá chuyển từ `variants` lên `products`; bỏ nhãn `MEMBER`; ràng buộc hoả tốc chỉ với VNPay; thêm `staff_accounts.must_change_password`; dữ liệu mẫu không chứa `ADMIN`; cập nhật bảng đối chiếu |
+| 1.2 | 2026-11-24 | Theo SRS v1.5: khuyến mãi có thời hạn (`sale_starts_at`, `sale_ends_at`); `launch_at` bắt buộc khi đã đăng bán, bỏ `published_at`; bỏ `badge` (nhãn được suy ra); `fit_hint` thành `fit`; ảnh lưu `image_key` kèm `width`, `height` (cả trong `order_lines`); bỏ `orders.marketing_opt_in`; thêm `order_access_tokens`; outbox lưu nội dung đã dựng và `order_id`; thêm `staff_accounts.is_demo`; cập nhật mục 9 |
 
 ### Cách đọc
 
@@ -121,14 +122,14 @@ CREATE TABLE catalog.products (
     sport            text NOT NULL CHECK (sport IN ('RUNNING', 'TRAIL', 'LIFESTYLE', 'TRAINING', 'FOOTBALL')),
     description      text NOT NULL DEFAULT '',
     specs            jsonb NOT NULL DEFAULT '{}',          -- thông số hiển thị: {"Trọng lượng": "228 g", …}
-    status           text NOT NULL CHECK (status IN ('DRAFT', 'PUBLISHED', 'ARCHIVED')),
-    launch_at        timestamptz,                          -- null = mở bán ngay khi đăng
-    published_at     timestamptz,
+    status           text NOT NULL CHECK (status IN ('DRAFT', 'PUBLISHED', 'ARCHIVED')),   -- SRS mục 6.5
+    launch_at        timestamptz,                          -- giờ mở bán; đăng bán không lên lịch thì = lúc đăng
     list_price       bigint NOT NULL CHECK (list_price > 0),        -- giá ở mức sản phẩm (SRS BR-PRC-08)
     sale_price       bigint CHECK (sale_price > 0 AND sale_price < list_price),
-    badge            text CHECK (badge IN ('NEW', 'BESTSELLER')),
-    featured_rank    integer,                              -- thứ tự "Nổi bật"
-    fit_hint         numeric(2,1) CHECK (fit_hint BETWEEN -1 AND 1),  -- âm: chật, dương: rộng
+    sale_starts_at   timestamptz,                          -- khuyến mãi hiệu lực trong [starts, ends) (BR-PRC-09)
+    sale_ends_at     timestamptz,                          -- null = không thời hạn
+    featured_rank    integer CHECK (featured_rank > 0),    -- thứ tự "Nổi bật"; null = không nổi bật
+    fit              text NOT NULL DEFAULT 'TRUE_TO_SIZE' CHECK (fit IN ('SMALL', 'TRUE_TO_SIZE', 'LARGE')),
     rating           numeric(2,1) CHECK (rating BETWEEN 0 AND 5),     -- dữ liệu mẫu (SRS A-03)
     review_count     integer NOT NULL DEFAULT 0,
     seo_title        text,
@@ -136,7 +137,9 @@ CREATE TABLE catalog.products (
     search_text      text NOT NULL DEFAULT '',             -- đã bỏ dấu, chữ thường; ứng dụng tính
     search_vector    tsvector GENERATED ALWAYS AS (to_tsvector('simple', search_text)) STORED,
     -- audit
-    CHECK (status <> 'PUBLISHED' OR published_at IS NOT NULL)
+    CHECK (status = 'DRAFT' OR launch_at IS NOT NULL),
+    CHECK ((sale_price IS NULL) = (sale_starts_at IS NULL)),
+    CHECK (sale_ends_at IS NULL OR (sale_starts_at IS NOT NULL AND sale_ends_at > sale_starts_at))
 );
 CREATE INDEX products_listing_idx ON catalog.products (category_id, featured_rank)
     WHERE status = 'PUBLISHED';
@@ -154,8 +157,10 @@ CREATE TABLE catalog.colorways (
 CREATE TABLE catalog.product_images (
     id           uuid PRIMARY KEY,
     colorway_id  uuid NOT NULL REFERENCES catalog.colorways (id) ON DELETE CASCADE,
-    url          text NOT NULL,                            -- URL đầy đủ (kiến trúc 9.7)
-    alt          text NOT NULL DEFAULT '',
+    image_key    text NOT NULL CHECK (image_key !~ '^[a-z]+://'),   -- khoá ảnh, không chứa host (SRS BR-CAT-01)
+    width        integer NOT NULL CHECK (width > 0),
+    height       integer NOT NULL CHECK (height > 0),
+    alt          text NOT NULL CHECK (alt <> ''),
     sort_order   integer NOT NULL DEFAULT 0
 );
 CREATE INDEX product_images_colorway_id_idx ON catalog.product_images (colorway_id, sort_order);
@@ -188,10 +193,15 @@ CREATE TABLE catalog.back_in_stock_requests (
 **Vì sao:**
 
 - **Tìm kiếm không dấu (FR-CAT-08).** Ứng dụng ghép tên, danh mục, môn thể thao, giới tính, tên màu thành `search_text`, rồi bỏ dấu và chuyển chữ thường bằng `java.text.Normalizer` (giống hàm `CAD.norm` của prototype). PostgreSQL tự tính `search_vector` từ cột đó. Không dùng extension `unaccent` vì hàm này không được đánh dấu `IMMUTABLE`, nên không dùng trực tiếp được trong cột sinh tự động hay index, phải bọc qua một hàm tự viết. Làm ở Java thì đơn giản hơn và có unit test. Câu truy vấn: `search_vector @@ to_tsquery('simple', 'giay:* & chay:*')` (`:*` là khớp tiền tố, đúng luật "khớp đầu từ").
-- **Giá đặt ở sản phẩm, không ở variant** (SRS BR-PRC-08, D-12): mọi size, mọi màu cùng giá. Nếu lưu giá ở từng variant thì 6 size sẽ có 6 bản sao cùng một con số, và có nguy cơ lệch nhau khi sửa. Lọc theo khoảng giá so trực tiếp với `COALESCE(sale_price, list_price)` của sản phẩm. Khi sau này cần giá theo size, chuyển cột xuống `variants` bằng một migration.
+- **Giá đặt ở sản phẩm, không ở variant** (SRS BR-PRC-08, D-12): mọi size, mọi màu cùng giá. Nếu lưu giá ở từng variant thì 6 size sẽ có 6 bản sao cùng một con số, và có nguy cơ lệch nhau khi sửa. Lọc theo khoảng giá so với giá đang bán của sản phẩm tại thời điểm truy vấn (ý về khuyến mãi bên dưới). Khi sau này cần giá theo size, chuyển cột xuống `variants` bằng một migration.
 - **`available` là phi chuẩn hoá có chủ đích** (P5): bản sao của "ATS > 0", để PLP lọc size và đếm facet bằng một truy vấn mà không đọc sang `inventory` (kiến trúc 7.8). Index một phần `WHERE available` chỉ chứa variant còn hàng nên rất nhỏ.
 - **`ON DELETE CASCADE`** chỉ có tác dụng với sản phẩm **nháp**. Sản phẩm đã có đơn thì không bao giờ bị xoá (FR-ADM-PRD-06), chỉ chuyển `ARCHIVED`; dòng đơn đã có snapshot nên không phụ thuộc vào bảng này.
 - `CHECK (sale_price < list_price)`: giá khuyến mãi bằng hoặc cao hơn giá gốc là dữ liệu sai, chặn ngay ở DB.
+- **Khuyến mãi có thời hạn** (BR-PRC-09) nằm ngay trong `products` (ba cột) chứ không phải bảng riêng, vì mỗi sản phẩm có tối đa một khuyến mãi. Giá đang bán tại thời điểm `now` = `CASE WHEN sale_price IS NOT NULL AND sale_starts_at <= now AND (sale_ends_at IS NULL OR now < sale_ends_at) THEN sale_price ELSE list_price END`. Biểu thức này là bản sao bằng SQL của luật trong domain, dùng để lọc và sắp theo giá; nó được gom vào **một** chỗ trong code và có test so kết quả SQL với kết quả domain. Không lưu sẵn "giá hiện tại" vào một cột, vì cột đó sẽ sai ngay khi khuyến mãi tới hạn mà không ai cập nhật.
+- **Không có cột trạng thái "sắp mở bán"** (SRS mục 6.5): đang bán = `status = 'PUBLISHED' AND launch_at <= now`. Lưu thành trạng thái riêng thì phải có tác vụ nền đổi trạng thái đúng giờ, và sẽ có khoảng trễ. `launch_at` bắt buộc khi đã đăng bán nên câu so sánh không cần xử lý null; nó cũng là khoá sắp xếp "mới nhất" và căn cứ nhãn "Mới".
+- **Bỏ cột `badge`**: nhãn "Mới", "−N%", "Hết hàng" được suy ra (FR-CAT-09). Lưu nhãn tay thì sẽ lệch với dữ liệu thật.
+- **Ảnh lưu khoá, không lưu URL** (BR-CAT-01): `CHECK` chặn ai đó lỡ nhập URL đầy đủ. `width`, `height` bắt buộc để giữ chỗ khi tải ảnh.
+- **Slug không đổi sau khi đăng bán** (BR-CAT-02) là luật chuyển trạng thái, nằm trong aggregate `Product`, không viết thành `CHECK` được (cần so giá trị cũ với mới).
 
 ### 4.2 inventory
 
@@ -307,7 +317,6 @@ CREATE TABLE ordering.orders (
     customer_id         uuid,                              -- null: khách vãng lai
     email               text NOT NULL CHECK (email = lower(email)),
     phone               text NOT NULL CHECK (phone ~ '^0[0-9]{9}$'),
-    marketing_opt_in    boolean NOT NULL DEFAULT false,
     -- địa chỉ giao (snapshot, không trỏ sang sổ địa chỉ)
     recipient_name      text NOT NULL,
     province            text NOT NULL,
@@ -371,7 +380,7 @@ CREATE TABLE ordering.order_lines (
     product_name        text NOT NULL,
     color_name          text NOT NULL,
     size                text NOT NULL,
-    image_url           text NOT NULL,
+    image_key           text NOT NULL,                     -- khoá ảnh, không phải URL (SRS BR-CAT-01)
     list_price          bigint NOT NULL CHECK (list_price > 0),
     unit_price          bigint NOT NULL CHECK (unit_price > 0 AND unit_price <= list_price),
     quantity            integer NOT NULL CHECK (quantity BETWEEN 1 AND 5),
@@ -401,6 +410,15 @@ CREATE TABLE ordering.order_events (
     visible_to_customer  boolean NOT NULL                   -- ghi chú nội bộ (FR-ADM-ORD-09) = false
 );
 CREATE INDEX order_events_order_idx ON ordering.order_events (order_id, occurred_at);
+
+CREATE TABLE ordering.order_access_tokens (
+    token_hash   bytea PRIMARY KEY,                         -- SHA-256 của mã bí mật trong link (SRS FR-ORD-07)
+    order_id     uuid NOT NULL REFERENCES ordering.orders (id),
+    purpose      text NOT NULL CHECK (purpose IN ('ORDER_LINK', 'LOOKUP')),
+    created_at   timestamptz NOT NULL,
+    expires_at   timestamptz NOT NULL CHECK (expires_at > created_at)
+);
+CREATE INDEX order_access_tokens_order_idx ON ordering.order_access_tokens (order_id);
 ```
 
 **Vì sao:**
@@ -414,6 +432,10 @@ CREATE INDEX order_events_order_idx ON ordering.order_events (order_id, occurred
 - **Giới hạn 10 sản phẩm mỗi giỏ** không viết được thành `CHECK` (cần cộng nhiều dòng). Aggregate `Cart` kiểm, và mọi thay đổi `cart_items` đều tăng `carts.version`. Hai tab cùng thêm hàng thì một bên vướng khoá lạc quan.
 - **Index một phần cho tác vụ nền:** mỗi tác vụ chỉ quét đúng nhóm đơn nó cần (ví dụ đơn đang chờ thanh toán). Các index này rất nhỏ vì phần lớn đơn đã qua các trạng thái đó.
 - Bảng tên `orders` (số nhiều) cũng tránh được `ORDER` là từ khoá SQL.
+- **Link truy cập đơn** (FR-ORD-07) nằm ở bảng riêng `order_access_tokens`, không phải một cột của `orders`, vì một đơn có nhiều mã: mã `ORDER_LINK` tạo lúc đặt, hiệu lực 90 ngày, dùng ở trang kết quả và trong mọi email; mỗi lần tra cứu thành công (FR-ORD-02) cấp thêm một mã `LOOKUP` hiệu lực 24 giờ. Nếu chỉ có một cột thì tra cứu sẽ phải ghi đè mã cũ, làm hỏng link trong email.
+  - Chỉ lưu **bản băm** SHA-256: lộ bảng này cũng không mở được đơn nào. Không cần BCrypt như mật khẩu, vì mã có 128 bit ngẫu nhiên, không đoán được; băm nhanh lại cho phép tìm thẳng bằng khoá chính.
+  - Mã đã hết hạn được dọn định kỳ (mục 8).
+- **Bỏ `marketing_opt_in` ở đơn hàng** (SRS D-53): SRS không có ô đồng ý nhận tin ở checkout. Đồng ý nhận tin chỉ nằm ở `customer_accounts` (FR-ACC-01).
 
 ### 4.4 payment
 
@@ -514,7 +536,8 @@ CREATE TABLE account.staff_accounts (
     role                 text NOT NULL CHECK (role IN ('STAFF', 'ADMIN')),
     status               text NOT NULL CHECK (status IN ('ACTIVE', 'LOCKED')),
     password_changed_at  timestamptz NOT NULL,
-    must_change_password boolean NOT NULL DEFAULT false,               -- FR-ADM-05: ADMIN đầu tiên phải đổi mật khẩu
+    must_change_password boolean NOT NULL DEFAULT false,               -- FR-ADM-04, FR-ADM-05: phải đổi mật khẩu ở lần đăng nhập đầu
+    is_demo              boolean NOT NULL DEFAULT false,               -- NFR-DEMO-01: tài khoản dùng thử, không đổi được mật khẩu
     last_login_at        timestamptz
     -- audit
 );
@@ -553,8 +576,11 @@ CREATE TABLE notification.outbox_messages (
     id               uuid PRIMARY KEY,
     type             text NOT NULL,                        -- ORDER_PLACED, PAYMENT_SUCCEEDED, ORDER_CANCELLED, ORDER_SHIPPED, REFUND_COMPLETED
     aggregate_key    text NOT NULL,                        -- mã đơn
+    order_id         uuid NOT NULL,                        -- để trang "Xem email (bản demo)" lấy email của đúng đơn
     recipient        text NOT NULL,
     payload          jsonb NOT NULL,                       -- dữ liệu để dựng email, lấy từ sự kiện
+    subject          text,                                 -- nội dung đã dựng, ghi lúc gửi (kiến trúc 9.3)
+    body_html        text,
     status           text NOT NULL CHECK (status IN ('PENDING', 'SENT', 'FAILED')),
     attempts         integer NOT NULL DEFAULT 0,
     next_attempt_at  timestamptz NOT NULL,
@@ -564,9 +590,12 @@ CREATE TABLE notification.outbox_messages (
     UNIQUE (type, aggregate_key)                           -- một sự kiện không thể sinh hai email (kiến trúc 9.2)
 );
 CREATE INDEX outbox_messages_due_idx ON notification.outbox_messages (next_attempt_at) WHERE status = 'PENDING';
+CREATE INDEX outbox_messages_order_idx ON notification.outbox_messages (order_id);
 ```
 
 **Vì sao:** `payload` dùng `jsonb` vì mỗi loại email cần dữ liệu khác nhau và chỉ được đọc lại để dựng email, không bao giờ dùng để lọc hay JOIN. Đây là chỗ duy nhất mà một cấu trúc linh hoạt có lợi hơn các cột rõ ràng.
+
+`subject`, `body_html` lưu **nội dung đã dựng** (SRS mục 4.11, NFR-DEMO-03): trang "Xem email (bản demo)" hiện đúng thứ đã gửi đi, kể cả khi mẫu email sau này đổi. `order_id` là id của `ordering.orders` nhưng **không** có khoá ngoại sang schema đó, theo quy tắc không tham chiếu chéo module (kiến trúc 7.8).
 
 ---
 
@@ -719,7 +748,8 @@ Kết quả: dù code có lỗi hay bị khai thác SQL injection, ứng dụng 
 |---|---|---|
 | Giỏ vãng lai không hoạt động | 30 ngày | Tác vụ hằng ngày, dùng `carts_anonymous_stale_idx` |
 | Phiên đăng nhập hết hạn | Tới khi hết hạn | Spring Session tự dọn |
-| Outbox đã gửi | 30 ngày | Tác vụ hằng ngày |
+| Outbox đã gửi | 90 ngày (bằng hạn của link truy cập đơn, để trang xem email của demo còn dùng được) | Tác vụ hằng ngày |
+| Mã truy cập đơn hết hạn | Tới khi hết hạn | Tác vụ hằng ngày |
 | Nhật ký IPN, nhật ký đăng nhập | 1 năm | Tác vụ hằng tháng, chạy bằng `cadence_owner` |
 | Đơn hàng, dòng đơn, lịch sử đơn, sổ cái kho, giao dịch, hoàn tiền | Không xoá | Chứng từ |
 | Đăng ký "báo khi có hàng" | 90 ngày hoặc tới khi đã báo | Tác vụ hằng ngày |
@@ -732,7 +762,8 @@ Sao lưu: `pg_dump` hằng ngày (kiến trúc 11.2), giữ 7 bản gần nhất
 
 | Yêu cầu | Đáp ứng bằng |
 |---|---|
-| BR-INV-04 (không giữ quá tồn) | `CHECK (reserved <= on_hand)` + lệnh ghi có điều kiện (5.1) |
+| BR-INV-04 (a) `Reserved ≤ On hand` | `CHECK (reserved <= on_hand)` |
+| BR-INV-04 (b) giữ hàng không vượt tồn an toàn | Lệnh ghi có điều kiện (5.1); chỉ kiểm lúc giữ, nên tăng tồn an toàn không bị DB chặn |
 | BR-INV-05 (sổ cái khớp tồn) | `inventory_movements` chỉ thêm (P4) + bất biến đối soát (4.2) |
 | BR-ORD-01 (snapshot) | Cột snapshot trong `order_lines`, `orders` |
 | BR-ORD-06 (5 mỗi dòng) | `CHECK (quantity BETWEEN 1 AND 5)`; 10 mỗi đơn do aggregate kiểm |
@@ -749,3 +780,9 @@ Sao lưu: `pg_dump` hằng ngày (kiến trúc 11.2), giữ 7 bản gần nhất
 | BR-PRC-08 (cùng giá mọi variant) | Giá đặt ở `products`, không ở `variants` |
 | FR-CHK-03 (hoả tốc chỉ với VNPay) | `CHECK (shipping_method <> 'SAME_DAY' OR payment_method = 'VNPAY')` |
 | FR-ADM-05 (ADMIN đầu tiên) | `staff_accounts.must_change_password` |
+| BR-PRC-09 (khuyến mãi có thời hạn) | `sale_price`, `sale_starts_at`, `sale_ends_at` + 3 `CHECK` |
+| Mục 6.5 SRS (vòng đời sản phẩm) | `products.status`, `launch_at` bắt buộc khi đã đăng bán |
+| BR-CAT-01 (ảnh lưu khoá) | `product_images.image_key`, `order_lines.image_key`, `CHECK` chặn URL |
+| FR-ORD-07, NFR-SEC-03 (link truy cập đơn) | `order_access_tokens` chỉ lưu bản băm |
+| NFR-DEMO-01 (tài khoản demo) | `staff_accounts.is_demo` |
+| NFR-DEMO-03 (xem email của chính đơn) | `outbox_messages.order_id`, `subject`, `body_html` |

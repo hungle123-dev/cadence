@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| **Phiên bản tài liệu** | 1.0 |
+| **Phiên bản tài liệu** | 1.1 |
 | **Trạng thái** | Đã duyệt (baseline). Mọi thay đổi sau này ghi vào lịch sử thay đổi |
-| **Căn cứ** | [`01-srs.md`](01-srs.md) v1.4, [`02-architecture.md`](02-architecture.md) v1.1, [`03-database.md`](03-database.md) v1.1 |
+| **Căn cứ** | [`01-srs.md`](01-srs.md) v1.5, [`02-architecture.md`](02-architecture.md) v1.4, [`03-database.md`](03-database.md) v1.2 |
 
 ### Lịch sử thay đổi
 
@@ -13,6 +13,7 @@
 | 0.1 | 2026-11-24 | Bản đầu |
 | 0.2 | 2026-11-24 | Theo SRS v1.4: sửa TC-PRC-08 (FREESHIP tối đa bằng phí Tiêu chuẩn), TC-CART-02, 03, TC-CHK-02, TC-SEC-05, 08, TC-PAY-14, TC-CAT-08; thêm test cho FR-CHK-12, 13, FR-CART-08, FR-ADM-05, FR-CNT, NFR-DEMO, C-09 và các quyết định D-09…D-38 |
 | 1.0 | 2026-11-24 | Chốt baseline |
+| 1.1 | 2026-11-24 | Theo SRS v1.5: sửa TC-CAT-04, 06, 08, 11, TC-CART-04, TC-VCH-04, TC-INV-09, TC-SEC-06, TC-ADM-06, TC-ACC-01, TC-DEMO-01, TC-NTF-01, TC-SEO-02, 03, 05; thêm TC-CAT-13…18 (khuyến mãi có thời hạn, vòng đời sản phẩm, khoá ảnh, nhãn, slug, bộ lọc danh mục), TC-VCH-05, TC-SEC-18, 19, TC-SEO-06 |
 
 ### Cách đọc
 
@@ -116,13 +117,19 @@ Tầng: **D** domain, **S** service, **A** adapter, **H** HTTP, **C** đồng th
 | TC-CAT-01 | FR-CAT-01 | Phân trang 12 sản phẩm, "Xem thêm" trả đúng trang tiếp theo, không trùng, không sót | A, H |
 | TC-CAT-02 | FR-CAT-02 | Lọc nhiều lựa chọn kết hợp; facet count đúng với dữ liệu mẫu | A |
 | TC-CAT-03 | FR-CAT-02 | Size hết hàng **không** được đếm khi lọc; giữ hàng làm ATS về 0 thì size biến mất khỏi bộ lọc; trả hàng thì size xuất hiện lại | A, C |
-| TC-CAT-04 | FR-CAT-03 | Mỗi kiểu sắp xếp cho thứ tự đúng; giá dùng giá khuyến mãi nếu có | A |
+| TC-CAT-04 | FR-CAT-03 | Mỗi kiểu sắp xếp cho thứ tự đúng; giá dùng giá khuyến mãi **đang hiệu lực**; "nổi bật": có thứ hạng trước, không thứ hạng sau, cùng hạng thì mới hơn trước; nhiều sản phẩm bằng nhau ở khoá sắp xếp: duyệt hết bằng "Xem thêm" không trùng, không sót | A |
 | TC-CAT-05 | FR-CAT-06 | PDP: size ATS = 0 bị khoá; API thêm vào giỏ từ chối size đó | H, E |
-| TC-CAT-06 | FR-CAT-07 | Sản phẩm có `launch_at` ở tương lai: không có trong PLP và tìm kiếm; PDP trả trang đếm ngược, không mua được; tới giờ (tua `Clock`) thì xuất hiện | D, A |
+| TC-CAT-06 | FR-CAT-07, mục 6.5 | Sản phẩm sắp mở bán: không có trong PLP, tìm kiếm, sitemap; API chi tiết trả sản phẩm kèm cờ sắp mở bán; thêm vào giỏ bị từ chối; tới đúng giờ mở bán (tua `Clock`, kiểm cả mốc `launch_at` − 1 giây và `launch_at`) thì xuất hiện và mua được | D, A, H |
 | TC-CAT-07 | FR-CAT-08 | "giay chay bo" khớp "Giày chạy bộ"; "đ" ↔ "d"; "hoodie" và "ao ni" ra "Club Hoodie"; "ni" **không** khớp "organic"; xếp hạng: khớp đầu tên đứng trước | D (bỏ dấu, đồng nghĩa), A (truy vấn) |
-| TC-CAT-08 | FR-ADM-PRD-02, 03, BR-PRC-08 | Tạo, sửa sản phẩm; giá đặt một lần cho cả sản phẩm, mọi size cùng giá; `STAFF` sửa giá bị từ chối (403); `ADMIN` sửa được | D, H |
+| TC-CAT-08 | FR-ADM-PRD-02, 03, 08, 09, BR-PRC-08 | Tạo, sửa sản phẩm; giá đặt một lần cho cả sản phẩm, mọi size cùng giá. `STAFF` tạo và sửa nội dung được; `STAFF` đặt giá, đặt khuyến mãi, đăng bán, ngừng bán đều bị từ chối (403); `ADMIN` làm được | D, H |
+| TC-CAT-13 | BR-PRC-01, 09, FR-CHK-12 | Khuyến mãi `[10:00, 12:00)`: lúc 09:59:59 tính giá gốc; 10:00 tính giá khuyến mãi; 11:59:59 giá khuyến mãi; 12:00 giá gốc. Không có thời điểm kết thúc: còn hiệu lực mãi. Giá khuyến mãi ≥ giá gốc, kết thúc ≤ bắt đầu bị từ chối ở domain và ở DB. Khuyến mãi hết giữa lúc xem checkout và lúc đặt: không tạo đơn, báo tổng mới. Giá lọc và sắp xếp bằng SQL khớp giá domain trên toàn bộ dữ liệu mẫu ở nhiều mốc thời gian | D, A, H |
+| TC-CAT-14 | Mục 6.5, FR-ADM-PRD-09 | Test tham số hoá mọi cặp (trạng thái × hành động) theo bảng 6.5. Đăng bán sản phẩm thiếu giá, không phối màu, phối màu không ảnh, phối màu không size: bị từ chối và trả **đủ** mọi lý do một lần. `PUBLISHED` không về được `DRAFT`. Nháp và ngừng bán: API chi tiết trả 404 | D, H |
+| TC-CAT-15 | BR-CAT-01 | API trả URL ảnh = gốc nguồn ảnh cấu hình + khoá; đổi cấu hình thì URL đổi, dữ liệu không đổi; ghi khoá có dạng `https://…` bị `CHECK` từ chối; dòng đơn lưu khoá, không lưu URL | D, A |
+| TC-CAT-16 | FR-CAT-09 | Nhãn "Mới" xuất hiện khi giờ mở bán trong 30 ngày, mất ở ngày thứ 31 (tua `Clock`); "−N%" làm tròn xuống, chỉ khi khuyến mãi đang hiệu lực; "Hết hàng" khi mọi variant ATS = 0 | D, A |
+| TC-CAT-17 | BR-CAT-02 | Đổi slug sản phẩm nháp được; đổi slug sản phẩm đã đăng bán bị từ chối; slug có dấu, chữ hoa, khoảng trắng bị từ chối; slug trùng bị từ chối | D, A |
+| TC-CAT-18 | FR-CAT-01, 02 | API danh sách theo danh mục bỏ qua (từ chối) tham số lọc danh mục và không trả facet danh mục; trang tất cả sản phẩm và tìm kiếm có facet danh mục | H |
 | TC-CAT-12 | FR-CAT-02 | Lọc khoảng giá theo giá đang bán (sản phẩm giảm từ 2.890.000 xuống 2.290.000 nằm ở mức 2–3 triệu); đổi cấu hình các mức thì bộ lọc đổi theo | A |
-| TC-CAT-09 | FR-ADM-PRD-06 | Xoá sản phẩm đã có đơn bị từ chối; chỉ chuyển `ARCHIVED` được | D, A |
+| TC-CAT-09 | FR-ADM-PRD-06 | Xoá sản phẩm đã đăng bán (đã hoặc chưa có đơn) bị từ chối, chỉ chuyển `ARCHIVED` được; xoá nháp được | D, A |
 | TC-CAT-10 | FR-ADM-PRD-07 | Sửa giá không đổi dòng đơn cũ; giỏ đang có sản phẩm đó báo "Giá đã thay đổi" | A, H |
 
 ### 4.2 Giỏ hàng
@@ -132,7 +139,7 @@ Tầng: **D** domain, **S** service, **A** adapter, **H** HTTP, **C** đồng th
 | TC-CART-01 | FR-CART-01 | Thêm trùng variant thì cộng dồn; thiếu size thì lỗi 400 | D, H |
 | TC-CART-02 | FR-CART-02, FR-CART-08, BR-ORD-06 | Thêm cái thứ 6 cùng variant bị từ chối; tổng giỏ vượt 10 bị từ chối. Dòng đang có 3 mà ATS giảm còn 2: giỏ báo "Chỉ còn 2", chặn thanh toán, **không** tự giảm số lượng | D, S |
 | TC-CART-03 | FR-CART-03 | Đăng nhập: giỏ ẩn danh gộp vào giỏ tài khoản, cùng variant thì cộng dồn. Ví dụ 4 + 3 cùng variant → còn 5, kết quả gộp liệt kê dòng bị cắt; tổng vượt 10 cũng cắt và báo | D, S |
-| TC-CART-04 | FR-CART-04 | Mở giỏ có dòng hết hàng → báo lỗi, chặn thanh toán; có dòng đổi giá → báo giá cũ và giá mới | S, H |
+| TC-CART-04 | FR-CART-04 | Mở giỏ có dòng hết hàng, dòng của sản phẩm đã ngừng bán, dòng của sản phẩm bị dời giờ mở bán về tương lai → báo lỗi từng dòng, chặn thanh toán; có dòng đổi giá (sửa giá, khuyến mãi bắt đầu, khuyến mãi kết thúc) → báo giá cũ và giá mới | S, H |
 | TC-CART-05 | FR-CART-07 | Thêm vào giỏ **không** làm thay đổi `reserved` | A |
 | TC-CART-06 | Giỏ đồng thời | Hai request cùng thêm hàng vào một giỏ: một bên nhận `409 CONCURRENT_UPDATE`, giỏ không vượt giới hạn | C |
 
@@ -144,7 +151,8 @@ Tầng: **D** domain, **S** service, **A** adapter, **H** HTTP, **C** đồng th
 | TC-VCH-01 | BR-VCH-01, FR-CART-06 | Mã không tồn tại; chưa đủ giá trị tối thiểu (báo còn thiếu bao nhiêu); hết hạn; chưa tới ngày bắt đầu | D, H |
 | TC-VCH-02 | BR-VCH-02 | Áp voucher thứ hai thay thế voucher thứ nhất, không cộng dồn | D |
 | TC-VCH-03 | BR-VCH-05, NFR-07 | Xem TC-CON-04 | C |
-| TC-VCH-04 | BR-VCH-06 | Huỷ đơn trả lại đúng một lượt; huỷ lặp lại không trả thêm | A, C |
+| TC-VCH-04 | BR-VCH-06 | Mỗi đường huỷ (khách huỷ, nhân viên huỷ, hết hạn thanh toán, COD quá 48 giờ, giao thất bại) trả lại đúng một lượt; huỷ lặp lại không trả thêm; đơn đã giao không trả | A, C |
+| TC-VCH-05 | BR-VCH-01 | `FREESHIP` trên đơn giao Tiêu chuẩn đã miễn phí (đạt mốc, hoặc hội viên): báo "Đơn đã được miễn phí giao hàng", `used_count` không đổi. Cùng đơn đổi sang Nhanh: áp được, giảm 30.000 ₫ | D, A |
 
 ### 4.4 Checkout và đặt hàng
 
@@ -204,7 +212,7 @@ Tầng: **D** domain, **S** service, **A** adapter, **H** HTTP, **C** đồng th
 | TC-INV-03 | BR-INV-05 | Sau một chuỗi nhập, giữ, xuất, điều chỉnh, hoàn: `on_hand` = tổng sổ cái | A |
 | TC-INV-04 | P4 (database) | Ứng dụng chạy `UPDATE` hoặc `DELETE` trên `inventory_movements` bị DB từ chối vì thiếu quyền | A |
 | TC-INV-05 | Kiến trúc 7.8 | ATS từ 1 về 0 phát đúng một sự kiện, cờ `available` = false; từ 0 lên 3 thì true; từ 5 về 4 thì **không** phát | A |
-| TC-INV-09 | BR-INV-01 | On hand 3, đang giữ 2, tăng tồn an toàn lên 3: ATS hiển thị 0 (không phải −2), size bị khoá trên storefront | D, A |
+| TC-INV-09 | BR-INV-01, 04 | On hand 3, đang giữ 2, tăng tồn an toàn lên 3: thao tác được chấp nhận; ATS hiển thị 0 (không phải −2), size bị khoá trên storefront; 2 đơn đang giữ không bị ảnh hưởng; giữ thêm 1 bị từ chối. Điều chỉnh làm `on_hand < reserved` vẫn bị từ chối | D, A |
 | TC-INV-06 | Điều chỉnh đồng thời | Nhân viên điều chỉnh đúng lúc có người giữ hàng: không ghi đè số liệu (một bên thử lại) | C |
 
 ### 4.8 Tài khoản, phân quyền, bảo mật
@@ -216,7 +224,9 @@ Tầng: **D** domain, **S** service, **A** adapter, **H** HTTP, **C** đồng th
 | TC-SEC-03 | FR-ACC-03 | `?next=https://ke-xau.com` và `?next=//ke-xau.com` bị bỏ qua, quay về trang mặc định | H |
 | TC-SEC-04 | NFR-SEC-03 | Cookie phiên của khách gọi API admin → 401; `STAFF` gọi API chỉ dành cho `ADMIN` → 403 | H |
 | TC-SEC-05 | FR-ADM-ORD-08, FR-PAY-11 | `STAFF` hoàn 2.000.000 ₫ được; 2.000.001 ₫ bị từ chối; `ADMIN` hoàn 5.000.000 ₫ được. Áp dụng cả khi đánh dấu "Đã hoàn" thủ công | D, H |
-| TC-SEC-06 | NFR-SEC-03 (IDOR) | Khách A xem hoặc huỷ đơn của khách B → 404, giống hệt khi đơn không tồn tại | H |
+| TC-SEC-06 | NFR-SEC-03 (IDOR) | Khách A xem hoặc huỷ đơn của khách B → 404, giống hệt khi đơn không tồn tại. Biết mã đơn hay id đơn mà không có phiên, link truy cập hay tra cứu thành công → 404 | H |
+| TC-SEC-18 | FR-ORD-07 | Link truy cập đơn mở được đơn, huỷ được đơn; sửa một ký tự trong mã → 404; ngày 91 (tua `Clock`) → hết hạn; DB chỉ chứa bản băm, không chứa mã gốc; mã của đơn A không mở được đơn B; mã cấp từ tra cứu hết hạn sau 24 giờ, link trong email vẫn dùng được | A, H |
+| TC-SEC-19 | FR-ADM-06, NFR-DEMO-01 | Nhân viên đổi mật khẩu: sai mật khẩu hiện tại bị từ chối, mật khẩu mới theo quy tắc FR-ACC-01, phiên khác bị huỷ. Tài khoản demo đổi mật khẩu → bị từ chối, mật khẩu không đổi | D, H |
 | TC-SEC-07 | NFR-SEC-05 | Request `POST` thiếu CSRF token → 403 | H |
 | TC-SEC-08 | NFR-SEC-02 | Đăng nhập sai lần thứ 6 trong 15 phút → 429 kèm `Retry-After`. Tra cứu đơn lần thứ 11 / 15 phút / IP → 429. Áp voucher lần thứ 11 / 15 phút / giỏ → 429 | H |
 | TC-SEC-09 | FR-ADM-04 | Khoá nhân viên: request tiếp theo của người đó → 401 ngay | H |
@@ -233,7 +243,7 @@ Tầng: **D** domain, **S** service, **A** adapter, **H** HTTP, **C** đồng th
 
 | Mã | Yêu cầu | Test case | Tầng |
 |---|---|---|---|
-| TC-NTF-01 | FR-NTF-01…04 | Mỗi sự kiện sinh đúng một email với đúng người nhận và nội dung chính | A |
+| TC-NTF-01 | FR-NTF-01…04 | Mỗi sự kiện sinh đúng một email với đúng người nhận và nội dung chính. Đơn COD: email ngay khi đặt. Đơn VNPay: không có email lúc đặt, có email khi IPN `PAID`. Mọi email có link truy cập đơn. Gửi xong thì dòng outbox có tiêu đề và nội dung đã dựng | A |
 | TC-NTF-02 | Database 5.4 | SMTP lỗi: thử lại theo chờ tăng dần; quá 5 lần thì `FAILED`; đơn hàng không bị ảnh hưởng | S, A |
 | TC-NTF-03 | Database 5.4 | App "sập" giữa lúc gửi và lúc đánh dấu: email được nhận lại sau 5 phút | A |
 | TC-NTF-04 | Database 5.4 | Hai lượt chạy chồng nhau không nhận trùng email (`SKIP LOCKED`) | C |
@@ -252,14 +262,15 @@ Tầng: **D** domain, **S** service, **A** adapter, **H** HTTP, **C** đồng th
 | Mã | Yêu cầu | Test case | Tầng |
 |---|---|---|---|
 | TC-SEO-01 | NFR-SEO-01 | Tải PDP với **JavaScript tắt**: HTML có tên, giá, mô tả | E |
-| TC-SEO-02 | NFR-SEO-02, 03 | Mỗi trang công khai có `<title>`, mô tả, canonical riêng | E |
-| TC-SEO-03 | NFR-SEO-04 | `sitemap.xml` chứa mọi sản phẩm đang bán, không chứa nháp; `robots.txt` chặn đúng đường dẫn | E |
+| TC-SEO-02 | NFR-SEO-02, 03 | Mỗi trang công khai có `<title>`, mô tả, canonical riêng; `/danh-muc/giay?size=42&sort=price_asc` có canonical là `/danh-muc/giay` | E |
+| TC-SEO-03 | NFR-SEO-04 | `sitemap.xml` chứa mọi sản phẩm đang bán, không chứa nháp, ngừng bán, sắp mở bán; `robots.txt` chặn đúng đường dẫn | E |
 | TC-SEO-04 | NFR-SEO-05 | JSON-LD `Product` hợp lệ (kiểm theo schema) | E |
-| TC-SEO-05 | NFR-SEO-06 | Slug không tồn tại → HTTP 404 thật; giỏ hàng, tài khoản, tìm kiếm có `noindex` | E |
+| TC-SEO-05 | NFR-SEO-06, FR-CAT-07 | Slug không tồn tại, sản phẩm nháp, sản phẩm ngừng bán → HTTP 404 thật; sản phẩm sắp mở bán → 200, có đếm ngược và `noindex`; giỏ hàng, tài khoản, tìm kiếm có `noindex` | E |
+| TC-SEO-06 | NFR-SEO-03 | Sản phẩm không nhập tiêu đề, mô tả SEO: dùng mặc định "{tên} – {danh mục} \| Cadence" và tối đa 155 ký tự đầu của mô tả; nhập ghi đè thì dùng giá trị ghi đè | D, E |
 | TC-UX-01 | NFR-UX-01 | Luồng mua hàng chạy được ở màn hình rộng 360 px | E |
 | TC-UX-02 | NFR-UX-02 | axe-core: luồng mua hàng không có lỗi mức *serious* hoặc *critical*; hoàn tất checkout chỉ bằng bàn phím | E |
 | TC-PERF-03 | NFR-03 | Lighthouse giả lập điện thoại: LCP < 2,5 s trên trang chủ, PLP, PDP | P |
-| TC-CAT-11 | FR-CAT-05 | PDP hiển thị ảnh, tên, giá (giá gốc gạch ngang khi giảm), phối màu, trạng thái từng size, thông số, gợi ý chọn size | E |
+| TC-CAT-11 | FR-CAT-05 | PDP hiển thị ảnh (có `width`, `height`, `alt`), tên, giá (giá gốc gạch ngang khi có khuyến mãi đang hiệu lực), phối màu, trạng thái từng size, thông số, gợi ý chọn size theo form dáng (nhỏ, rộng có gợi ý; đúng size không có) | E |
 | TC-CART-07 | FR-CART-05 | API giỏ trả tạm tính, số tiền tiết kiệm, số tiền còn thiếu tới mốc miễn phí ship; giao diện hiển thị đúng | H, E |
 | TC-UX-03 | NFR-UX-03 | Mọi mã lỗi trong các `<Module>ErrorCode` của backend đều có thông báo tiếng Việt ở frontend (test đọc danh sách mã từ OpenAPI và so với bảng thông báo) | CI |
 
@@ -272,15 +283,15 @@ Tầng: **D** domain, **S** service, **A** adapter, **H** HTTP, **C** đồng th
 | TC-ADM-03 | FR-ADM-ORD-03 | API trả danh sách hành động hợp lệ theo trạng thái; với mọi trạng thái, danh sách này khớp bảng chuyển trạng thái của TC-ORD-01 | D, E |
 | TC-ADM-04 | FR-ADM-ORD-04, BR-ORD-02 | Xác nhận đơn COD ghi nhận cuộc gọi; đóng gói đơn COD **chưa** xác nhận bị từ chối | D, H |
 | TC-ADM-05 | FR-ADM-ORD-07 | Admin huỷ đơn thiếu lý do → 400; có lý do thì khách thấy lý do trên trang đơn | H |
-| TC-ADM-06 | FR-ADM-PRD-01 | Danh sách sản phẩm: tìm, lọc theo danh mục và trạng thái | A, H |
+| TC-ADM-06 | FR-ADM-PRD-01 | Danh sách sản phẩm: tìm, lọc theo danh mục và cách hiển thị (nháp, sắp mở bán, đang bán, ngừng bán) tại thời điểm truy vấn | A, H |
 | TC-ADM-07 | FR-ADM-02 | Danh sách việc cần làm đếm đúng: đơn COD chờ xác nhận, đơn chờ đóng gói, thanh toán treo, yêu cầu hoàn tiền, SKU sắp hết (gom từ 3 module) | H |
 | TC-ADM-08 | FR-ADM-03 | Xem TC-SEC-04 | H |
 | TC-ADM-09 | FR-ADM-05 | DB trống + biến môi trường: lần chạy đầu tạo `ADMIN`, bắt đổi mật khẩu ở lần đăng nhập đầu; khởi động lại không tạo thêm; đã có `ADMIN` thì không đụng tới; thiếu biến môi trường thì ghi log cảnh báo, không tạo | S, A |
 | TC-ADM-10 | FR-ADM-01, C-09 | Doanh thu: đơn đặt lúc 23:30 giờ Việt Nam được tính vào đúng ngày đó theo giờ Việt Nam; không tính phí ship; không tính đơn huỷ hay đơn còn chờ | A |
-| TC-ACC-01 | FR-ACC-05 | Tổng chi tiêu = tổng đơn `PLACED` / `COMPLETED` trừ số đã hoàn; đơn huỷ và đơn chờ thanh toán không được tính | A |
+| TC-ACC-01 | FR-ACC-05 | Tổng chi tiêu = tổng đơn `PLACED` / `COMPLETED`; đơn huỷ (kể cả đơn đã hoàn tiền) và đơn chờ thanh toán không được tính | A |
 | TC-CNT-01 | FR-CNT-01, C-08 | Ba trang nội dung tồn tại và có link ở chân trang, form đăng ký, checkout | E |
 | TC-CNT-02 | FR-CNT-02 | Phí giao, mốc miễn phí ship hiển thị trên giao diện lấy từ cùng cấu hình với logic tính tiền: đổi cấu hình thì cả hai đổi theo | H, E |
-| TC-DEMO-01 | NFR-DEMO-01, 03, 04 | Profile demo: không có kết nối SMTP nào được mở; trang "Xem email" của đơn A hiện email của đơn A, mở email của đơn B bằng phiên khác → 404; tài khoản dùng thử công khai có vai trò `STAFF`; trang có ghi chú môi trường thử | H, E |
+| TC-DEMO-01 | NFR-DEMO-01, 03, 04 | Cấu hình demo: SMTP trỏ tới Mailpit trong mạng nội bộ, cổng Mailpit không mở ra ngoài (kiểm `compose.prod.yaml`); trang "Xem email" của đơn A hiện đúng nội dung đã lưu của đơn A, mở email của đơn B khi không có quyền xem đơn B → 404; tài khoản dùng thử công khai có vai trò `STAFF`, cờ demo bật; trang có ghi chú môi trường thử | H, E |
 | TC-DEMO-02 | NFR-DEMO-02 | Tác vụ dựng lại dữ liệu demo chạy xong thì DB về đúng trạng thái dữ liệu mẫu (số sản phẩm, tồn kho, không còn đơn cũ) | A |
 | TC-INV-07 | FR-INV-01, BR-INV-01 | Bảng tồn hiển thị đúng on hand, đang giữ, tồn an toàn, ATS; ATS không bao giờ âm; lọc "sắp hết", "hết hàng" | A, H |
 | TC-INV-08 | FR-INV-04, BR-INV-06 | Sổ cái theo SKU đủ loại, số lượng có dấu, lý do, người thực hiện, thời điểm; loại biến động sai dấu bị `CHECK` từ chối | A |

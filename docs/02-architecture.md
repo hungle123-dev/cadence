@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| **Phiên bản tài liệu** | 1.3 |
+| **Phiên bản tài liệu** | 1.4 |
 | **Trạng thái** | Đã duyệt (baseline). Mọi thay đổi sau này ghi vào lịch sử thay đổi |
-| **Căn cứ** | [`01-srs.md`](01-srs.md) v1.4 |
+| **Căn cứ** | [`01-srs.md`](01-srs.md) v1.5 |
 | **Quyết định khó đảo ngược** | Thư mục [`adr/`](adr/README.md) |
 
 ### Lịch sử thay đổi
@@ -19,6 +19,7 @@
 | 1.1 | 2026-11-24 | Theo SRS v1.4: kiểm tổng tiền khi đặt hàng (8.1); chế độ email của môi trường demo (9.3, 11.1); tạo `ADMIN` đầu tiên (10.4) |
 | 1.2 | 2026-11-24 | Theo thực tế khi dựng M0: Spring Boot 4.2.x (bản ổn định mới nhất lúc khởi tạo), Next.js 16 với Cache Components (ISR viết bằng `use cache`). Dữ liệu lấy lúc chạy phải nằm trong `<Suspense>` |
 | 1.3 | 2026-11-24 | Thêm rủi ro mất kết nối khi triển khai (mục 14); healthcheck cho backend và frontend trong Docker |
+| 1.4 | 2026-11-24 | Theo SRS v1.5: trang sắp mở bán (5.1, 5.3); vòng đời sản phẩm và khuyến mãi có thời hạn (7.6); IPN tới sau khi huỷ (8.2); email đi qua SMTP ở mọi môi trường, demo trỏ tới Mailpit nội bộ (9.3, 11.1); ảnh lưu theo khoá (9.7); link truy cập đơn, quyền đăng bán sản phẩm, tài khoản demo (10.2, 10.3, 10.4) |
 
 ### Cách đọc
 
@@ -144,13 +145,15 @@ Không phải trang nào cũng cần SEO. Chọn cách render theo **ai đọc t
 
 | Trang | Cách render | Index Google | Vì sao |
 |---|---|---|---|
-| Trang chủ, danh mục (PLP), chi tiết sản phẩm (PDP) | Server Component, **ISR**: trong Next.js 16 viết bằng `'use cache'` + `cacheLife` (làm mới 5 phút) + `cacheTag` (admin sửa sản phẩm thì `revalidateTag`) | Có | Cần SEO; nội dung ít đổi; trả HTML có sẵn rất nhanh |
+| Trang chủ, danh mục (PLP), chi tiết sản phẩm (PDP), kể cả PDP sắp mở bán | Server Component, **ISR**: trong Next.js 16 viết bằng `'use cache'` + `cacheLife` (làm mới 5 phút) + `cacheTag` (admin sửa sản phẩm thì `revalidateTag`) | Có | Cần SEO; nội dung ít đổi; trả HTML có sẵn rất nhanh |
 | Kết quả tìm kiếm | Server Component, render mỗi request | Không (`noindex`) | Vô hạn tổ hợp từ khoá; tránh trang rác trong chỉ mục |
 | **Tồn kho theo size, giá đang áp dụng** trên PDP | Client gọi API khi trang mở | — | Đổi theo từng giây; không để HTML tạo sẵn hiển thị "còn hàng" sai |
 | Giỏ hàng, checkout, kết quả đơn, tra cứu đơn, tài khoản | Client Component | Không | Dữ liệu riêng của từng người, cần cookie phiên |
 | Admin (`/admin/*`) | Client Component | Không, chặn trong `robots.txt` | Không cần SEO; giao diện thao tác |
 
-Giá trong HTML tạo sẵn có thể cũ tối đa 5 phút. Điều đó **an toàn**: tiền chỉ được tính ở backend khi vào giỏ và khi đặt hàng (FR-CART-04, FR-CHK-08), nên khách không bao giờ bị tính theo giá cũ.
+Giá trong HTML tạo sẵn có thể cũ tối đa 5 phút, kể cả lúc khuyến mãi vừa bắt đầu hay kết thúc (BR-PRC-09). Điều đó **an toàn**: giá đang áp dụng trên PDP lấy từ API lúc mở trang, còn tiền chỉ được tính ở backend khi vào giỏ và khi đặt hàng (FR-CART-04, FR-CHK-08), nên khách không bao giờ bị tính theo giá cũ.
+
+Tương tự với PDP **sắp mở bán** (SRS FR-CAT-07): HTML tạo sẵn chỉ chứa nội dung và giờ mở bán; đồng hồ đếm ngược chạy ở trình duyệt, còn được mua hay không lấy từ API theo thời điểm hiện tại. Tới giờ mở bán, khách mua được ngay dù HTML còn cũ tối đa 5 phút; chỉ thẻ `noindex` có thể còn thêm tối đa 5 phút, không ảnh hưởng gì.
 
 ### 5.2 Ai gọi API
 
@@ -163,11 +166,11 @@ Giá trong HTML tạo sẵn có thể cũ tối đa 5 phút. Điều đó **an t
 
 ### 5.3 SEO (NFR-SEO)
 
-- URL thân thiện: `/san-pham/{slug}`, `/danh-muc/{slug}`.
-- `generateMetadata` cho tiêu đề, mô tả, Open Graph, canonical.
-- `sitemap.xml` sinh từ danh sách sản phẩm đang bán; `robots.txt` chặn `/admin`, `/gio-hang`, `/thanh-toan`, `/tai-khoan`.
+- URL thân thiện: `/san-pham/{slug}`, `/danh-muc/{slug}`. Slug của sản phẩm đã đăng bán không đổi (BR-CAT-02).
+- `generateMetadata` cho tiêu đề, mô tả, Open Graph, canonical. Tiêu đề và mô tả mặc định do backend sinh (NFR-SEO-03); admin chỉ ghi đè. Trang có tham số lọc hoặc sắp xếp: canonical về trang không tham số.
+- `sitemap.xml` sinh từ danh sách sản phẩm **đang bán** (không gồm sắp mở bán); `robots.txt` chặn `/admin`, `/gio-hang`, `/thanh-toan`, `/tai-khoan`, `/don-hang`.
 - Dữ liệu có cấu trúc JSON-LD `Product` (tên, ảnh, giá VND, tình trạng còn hàng) trên PDP.
-- Sản phẩm không tồn tại hoặc chưa mở bán trả **HTTP 404 thật** (`notFound()`), không phải trang 200 báo lỗi.
+- Sản phẩm không tồn tại, nháp hoặc ngừng bán trả **HTTP 404 thật** (`notFound()`), không phải trang 200 báo lỗi. Sản phẩm sắp mở bán trả 200 kèm `robots: noindex` (SRS mục 6.5).
 - Ảnh qua `next/image` (đúng kích thước, lazy load) để đạt LCP (NFR-03). Host ảnh được phép đọc từ cấu hình vì ảnh hiện là mock và sẽ đổi nguồn (mục 9.7).
 
 ### 5.4 Cấu trúc thư mục
@@ -285,7 +288,7 @@ Không dùng message broker (Kafka, RabbitMQ). Xem mục 12.
 
 | Aggregate | Bất biến (luôn đúng sau mỗi thao tác) | Chặn ghi đồng thời bằng |
 |---|---|---|
-| `Product` (catalog) | Chỉ nháp mới đăng bán; slug duy nhất; giá > 0, giá khuyến mãi < giá gốc | `@Version` (khoá lạc quan) |
+| `Product` (catalog) | Chuyển trạng thái theo SRS mục 6.5; chỉ đăng bán khi đủ giá, phối màu, ảnh, size (FR-ADM-PRD-09); slug duy nhất và không đổi sau khi đăng bán; giá > 0; 0 < giá khuyến mãi < giá gốc, bắt đầu < kết thúc | `@Version` (khoá lạc quan) |
 | `InventoryItem` (inventory) | `0 ≤ reserved ≤ on_hand`; mọi thay đổi on hand có một dòng sổ cái | **Lệnh ghi có điều kiện** ([ADR-0002](adr/0002-giu-hang-bang-update-co-dieu-kien.md)) + `CHECK` trong DB |
 | `Voucher` (ordering) | Lượt đã dùng ≤ giới hạn; chỉ dùng trong thời hạn | Lệnh ghi có điều kiện |
 | `Cart` (ordering) | ≤ 5 mỗi dòng, ≤ 10 mỗi giỏ | `@Version` |
@@ -375,7 +378,7 @@ Hai request cùng key chạy song song: request sau vướng ràng buộc `UNIQU
 2. Kiểm chữ ký HMAC-SHA512. Sai → trả `97`.
 3. Tải `PaymentTransaction` theo `txnRef`. Không có → `01`.
 4. `transaction.confirm(amount, now)`: domain kiểm số tiền (sai → `04`) và trạng thái (đã xử lý → trả `02`, không làm gì thêm).
-5. Gọi use case `ordering.MarkOrderPaid`. Nếu đơn đã hết hạn và bị huỷ, `Order` tự chuyển thanh toán sang `REFUND_PENDING` thay vì `PAID` (FR-PAY-06).
+5. Gọi use case `ordering.MarkOrderPaid`. Nếu đơn đã bị huỷ (trạng thái thanh toán `EXPIRED`), `Order` tự chuyển `EXPIRED → REFUND_PENDING` thay vì `PAID` và phát sự kiện cần hoàn tiền để `payment` tạo yêu cầu hoàn tiền (FR-PAY-06). Hàng không bị giữ lại.
 6. Commit. Hai IPN trùng chạy song song: một bên vướng `@Version`, đọc lại thấy đã `PAID`, trả `02` (NFR-05).
 
 Gọi ra VNPay (`querydr`, `refund`) đi qua `PaymentGatewayPort`:
@@ -396,7 +399,7 @@ Gọi ra VNPay (`querydr`, `refund`) đi qua `PaymentGatewayPort`:
 | Huỷ COD quá hạn | 15 phút | `PENDING_CONFIRMATION` quá 48 giờ → huỷ, giải phóng hàng | BR-ORD-05 |
 | Hoàn tất đơn | 1 giờ | Giao thành công quá 7 ngày → `COMPLETED` | BR-ORD-04 |
 | Gửi email | 10 giây | Nhận email chưa gửi bằng lease (`SKIP LOCKED`), gửi ngoài transaction, rồi đánh dấu (database 5.4); lỗi thì thử lại chờ tăng dần, quá 5 lần thì đánh dấu thất bại cho admin xem | FR-NTF |
-| Đối soát hằng đêm | 02:00 | So các giao dịch `PENDING` / `REFUND_PENDING` trong 48 giờ qua với VNPay | FR-PAY-12 |
+| Đối soát hằng đêm | 02:00 | So các giao dịch thanh toán `PENDING` và yêu cầu hoàn tiền `PENDING` tạo trong 48 giờ qua với VNPay | FR-PAY-12 |
 
 Mọi tác vụ xử lý theo lô nhỏ, **mỗi đơn một transaction**, và **chạy lại an toàn**: trạng thái chỉ đi một chiều, có kiểm tra trong domain và `@Version`; outbox lấy dòng bằng `SKIP LOCKED`. Vì vậy chưa cần ShedLock (khoá để chỉ một instance chạy tác vụ). Thêm nó khi chạy từ hai instance trở lên, để tránh làm việc thừa, chứ không phải để đảm bảo đúng.
 
@@ -428,9 +431,9 @@ PostgreSQL chạy ở mức cô lập mặc định **Read Committed**. Mức n�
 
 1. Use case phát domain event (`OrderPlacedEvent`…) bằng `ApplicationEventPublisher`.
 2. `notification` nghe **đồng bộ, trước khi commit**, ghi một dòng vào `notification.outbox_messages`. Cùng transaction với đơn hàng: đơn lưu được thì email chắc chắn được ghi nhận; đơn rollback thì không có email.
-3. Tác vụ nền gửi email từ outbox. SMTP sập chỉ làm email đến muộn, không ảnh hưởng đặt hàng.
+3. Tác vụ nền dựng nội dung email (tiêu đề, HTML), **lưu nội dung đã dựng vào chính dòng outbox**, rồi gửi qua SMTP. SMTP sập chỉ làm email đến muộn, không ảnh hưởng đặt hàng.
 
-**Môi trường demo** (SRS NFR-DEMO-03): adapter gửi email là `DemoMailAdapter` thay cho SMTP, chọn bằng cấu hình. Nó không gửi ra ngoài mà chỉ đánh dấu đã gửi; trang đơn hàng đọc nội dung email từ outbox, và chỉ của chính đơn đó (cùng quy tắc quyền như xem đơn). Code nghiệp vụ không biết mình đang chạy ở demo.
+**Môi trường demo** (SRS NFR-DEMO-03): vẫn đi qua đúng adapter SMTP như mọi môi trường, chỉ khác cấu hình: SMTP trỏ tới container Mailpit trong mạng nội bộ, không mở cổng ra ngoài. Thư bị Mailpit giữ lại nên không tới được địa chỉ thật nào. Trang "Xem email (bản demo)" đọc nội dung đã lưu ở outbox, chỉ của chính đơn đó, với cùng quy tắc quyền như xem đơn (10.3). Vì demo chạy đúng đường code thật, gửi thư thật sau này chỉ là đổi biến môi trường SMTP.
 
 **Đánh đổi có chủ đích:** vì listener ở bước 2 chạy trong transaction đặt hàng, nếu nó ném lỗi thì đơn cũng rollback. Chọn vậy vì thà khách không đặt được đơn (và thấy lỗi ngay) còn hơn đặt được mà không bao giờ nhận email xác nhận. Để rủi ro này gần bằng 0, listener chỉ làm **một** việc: `INSERT` một dòng outbox với dữ liệu có sẵn trong sự kiện. Dựng nội dung email, gọi SMTP đều để cho tác vụ nền.
 
@@ -460,19 +463,20 @@ Theo template: URL `/api/v1/<module>/<tài-nguyên>`, admin `/api/v1/<module>/ad
 
 | Việc | Cách làm | Vì sao |
 |---|---|---|
-| Lưu ảnh | Bảng `catalog.product_images`: phối màu, URL đầy đủ, thứ tự, mô tả thay thế (`alt`) | Cùng một cột chứa được URL Unsplash bây giờ và URL storage sau này |
-| Hiển thị | `next/image` với danh sách host cho phép đọc từ biến môi trường | Đổi nguồn ảnh chỉ cần đổi cấu hình, không sửa code (A-04) |
-| Snapshot đơn hàng | Dòng đơn lưu URL ảnh tại lúc đặt (BR-ORD-01) | Đơn cũ vẫn hiện đúng ảnh dù sản phẩm đổi ảnh |
+| Lưu ảnh | Bảng `catalog.product_images`: phối màu, **khoá ảnh** (đường dẫn tương đối trong nguồn ảnh), chiều rộng, chiều cao, mô tả thay thế (`alt`), thứ tự (SRS BR-CAT-01) | Dữ liệu không chứa host nào, nên đổi nguồn ảnh không phải sửa dòng nào (A-04). Chiều rộng, chiều cao để `next/image` giữ chỗ, tránh nhảy bố cục (NFR-03) |
+| Ghép URL | `ImageUrlResolver` ở tầng adapter của `catalog`: URL = `cadence.images.base-url` + khoá. Domain chỉ biết khoá | Đổi nguồn ảnh chỉ đổi một biến môi trường, không sửa code |
+| Hiển thị | `next/image` với host cho phép đọc từ cùng biến môi trường | Như trên |
+| Snapshot đơn hàng | Dòng đơn lưu **khoá ảnh** tại lúc đặt (BR-ORD-01) | Đơn cũ vẫn hiện đúng ảnh dù sản phẩm đổi ảnh, và vẫn hiện được sau khi đổi nguồn ảnh |
 
 **Giai đoạn 2 (khi có ảnh riêng):**
 
 | Việc | Cách làm |
 |---|---|
 | Nơi lưu | Object storage tương thích S3: MinIO khi dev, Cloudflare R2 hoặc S3 khi demo. Đi qua `ProductImageStoragePort` trong `catalog`, nên đổi nhà cung cấp chỉ là đổi adapter |
-| Upload | Trình duyệt admin xin backend một **URL ký sẵn** (presigned URL, hết hạn sau vài phút) rồi tải ảnh **thẳng lên storage**. Backend chỉ kiểm tra loại file, kích thước, và ghi lại URL |
+| Upload | Trình duyệt admin xin backend một **URL ký sẵn** (presigned URL, hết hạn sau vài phút) rồi tải ảnh **thẳng lên storage**. Backend chỉ kiểm tra loại file, kích thước, và ghi lại khoá ảnh |
 | Phục vụ ảnh | Từ domain công khai của storage (có CDN đi kèm), không đi qua backend |
 | Tên file | Đặt theo nội dung (hash), **không bao giờ ghi đè hay xoá** ảnh đã được đơn hàng tham chiếu. Ảnh không còn ai dùng được dọn bằng tác vụ định kỳ |
-| Ảnh mock cũ | Thay dần bằng cách sửa sản phẩm trong admin; đơn cũ giữ nguyên URL cũ |
+| Ảnh mock cũ | Thay dần bằng cách sửa sản phẩm trong admin. Khi chuyển hẳn nguồn ảnh thì chép ảnh mock sang storage với cùng khoá, đơn cũ vẫn hiện đúng |
 
 **Vì sao tải thẳng lên storage thay vì gửi qua backend:** ảnh sản phẩm vài MB mỗi file. Gửi qua backend thì phải nới giới hạn kích thước request ở Nginx (hiện là 1 MB cho mọi API) và để app giữ file trong bộ nhớ. Với URL ký sẵn, file không đi qua server, còn backend vẫn kiểm soát được ai upload, upload vào đâu, trong bao lâu.
 
@@ -500,8 +504,9 @@ Code kiểm tra **quyền**, không kiểm tra **vai trò**. Nhờ vậy khi th�
 | `order:read`, `order:process` (xác nhận, đóng gói, giao, huỷ) | ✓ | ✓ |
 | `order:refund` | ✓ (có hạn mức, 10.3) | ✓ |
 | `inventory:adjust` | ✓ | ✓ |
-| `product:write` (nội dung) | ✓ | ✓ |
-| `product:price:write` | | ✓ |
+| `product:write` (nội dung, ở mọi trạng thái) | ✓ | ✓ |
+| `product:price:write` (giá, khuyến mãi) | | ✓ |
+| `product:publish` (đăng bán, lên lịch, ngừng bán, mở bán lại, xoá nháp) | | ✓ |
 | `staff:manage` | | ✓ |
 
 Ánh xạ vai trò → quyền là một `enum` trong code, **không** phải bảng trong DB: chỉ có hai vai trò, đổi rất hiếm, và để trong code thì được review qua pull request.
@@ -513,8 +518,9 @@ Có những luật mà vai trò thôi không trả lời được, vì phụ thu
 | Luật | Đặt ở đâu |
 |---|---|
 | `STAFF` chỉ hoàn tiền đơn ≤ 2.000.000 ₫ | `RefundPolicy` trong domain của `ordering`, nhận vào người thực hiện và số tiền |
-| Khách chỉ xem / huỷ được đơn của mình | Truy vấn luôn lọc theo `customerId` lấy từ phiên, **không** từ tham số (chống IDOR) |
-| Tra cứu đơn vãng lai cần mã đơn + email/số điện thoại khớp | Use case tra cứu; sai thì báo chung "không tìm thấy" |
+| Khách chỉ xem / huỷ được đơn của mình | Ba nguồn quyền, không nguồn nào lấy từ mã đơn hay id trên URL (chống IDOR): hội viên → truy vấn lọc theo `customerId` lấy từ phiên; link truy cập đơn (FR-ORD-07) → băm mã trong link bằng SHA-256 rồi tìm theo bản băm, kiểm hạn 90 ngày; tra cứu thành công → như dòng dưới |
+| Tra cứu đơn vãng lai cần mã đơn + email/số điện thoại khớp | Use case tra cứu; sai thì báo chung "không tìm thấy". Thành công thì cấp một mã truy cập đơn mới, hiệu lực 24 giờ (link trong email vẫn giữ hạn 90 ngày); trình duyệt dùng mã đó cho các lần gọi sau |
+| Tài khoản demo không đổi được mật khẩu (NFR-DEMO-01) | `StaffAccount.changePassword()` từ chối khi tài khoản là tài khoản demo |
 
 Đặt các luật này trong domain / use case (không phải trong `@PreAuthorize`) vì chúng là **luật nghiệp vụ** và cần unit test.
 
@@ -525,7 +531,7 @@ Có những luật mà vai trò thôi không trả lời được, vì phụ thu
 | Đăng nhập | Đổi session id mới (chống session fixation); giới hạn sai 5 lần / 15 phút |
 | Thời hạn phiên | Khách: 30 ngày. Nhân viên: hết sau 30 phút không thao tác, tối đa 12 giờ |
 | Khoá nhân viên | Xoá ngay mọi phiên của người đó (Spring Session tìm phiên theo tên đăng nhập) |
-| Đổi mật khẩu | Đăng xuất mọi phiên khác |
+| Đổi mật khẩu | Phải nhập mật khẩu hiện tại; đăng xuất mọi phiên khác. Nhân viên cũng tự đổi được (FR-ADM-06), trừ tài khoản demo |
 | CSRF | Token trong cookie đọc được bằng JS, gửi lại qua header; Spring Security kiểm |
 | Đặc quyền tối thiểu | Ứng dụng kết nối DB bằng user không phải superuser; bí mật lấy từ biến môi trường |
 | `ADMIN` đầu tiên (FR-ADM-05) | Lần khởi động đầu, nếu chưa có `ADMIN` nào: tạo từ biến môi trường `CADENCE_BOOTSTRAP_ADMIN_EMAIL` và `CADENCE_BOOTSTRAP_ADMIN_PASSWORD`, đặt `must_change_password`. Đã có `ADMIN` thì bỏ qua, nên khởi động lại không tạo trùng hay ghi đè. Không có `ADMIN` nào trong dữ liệu mẫu |
@@ -547,9 +553,9 @@ Có những luật mà vai trò thôi không trả lời được, vì phụ thu
 
 | Môi trường | Cách chạy |
 |---|---|
-| **Local** | `docker compose up`: PostgreSQL, Mailpit; backend chạy từ IDE, frontend `npm run dev` |
+| **Local** | `docker compose up`: PostgreSQL, Mailpit (trang xem thư mở ở localhost); backend chạy từ IDE, frontend `npm run dev` |
 | **CI** | GitHub Actions: backend (build, test với Testcontainers, ArchUnit); frontend (lint, `tsc`, build); Playwright chạy trên stack dựng bằng Compose |
-| **Demo** | Một VPS: Nginx + Next.js + Spring Boot + PostgreSQL bằng Docker Compose; domain + HTTPS. Tài khoản dùng thử là `STAFF`, dữ liệu dựng lại mỗi đêm, email không gửi ra ngoài (SRS mục 7.8) |
+| **Demo** | Một VPS: Nginx + Next.js + Spring Boot + PostgreSQL bằng Docker Compose; domain + HTTPS. Tài khoản dùng thử là `STAFF`, dữ liệu dựng lại mỗi đêm. Email gửi qua SMTP tới container Mailpit **không** mở cổng ra ngoài, nên không thư nào rời máy chủ (SRS mục 7.8) |
 
 ### 11.2 Phát hành
 
