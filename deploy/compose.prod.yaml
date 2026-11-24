@@ -42,7 +42,7 @@ services:
         condition: service_healthy   # page renders call the backend
 
   nginx:
-    image: nginx:1.30.8-alpine        # stable branch; Dependabot proposes updates
+    image: nginx:1.31.0-alpine        # stable branch; Dependabot proposes updates
     restart: unless-stopped
     environment:
       DOMAIN: ${DOMAIN:?}
