@@ -58,6 +58,11 @@ jobs:
   secrets-scan:
     name: Secret scan (gitleaks)
     runs-on: ubuntu-latest
+    # On pull requests the action lists the PR's commits through the API, which needs
+    # pull-requests: read. Comments are turned off so it never needs write access.
+    permissions:
+      contents: read
+      pull-requests: read
     steps:
       - uses: actions/checkout@v7
         with:
@@ -65,6 +70,7 @@ jobs:
       - uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_COMMENTS: "false"
 
   images:
     name: Build and push images
