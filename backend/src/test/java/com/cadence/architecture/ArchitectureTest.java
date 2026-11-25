@@ -1,170 +1,314 @@
 package com.cadence.architecture;
 
-import com.tngtech.archunit.core.domain.Dependency;
+import static com.tngtech.archunit.base.DescribedPredicate.not;
+import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAnyPackage;
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
+
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+
+import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaClass;
+import com.tngtech.archunit.core.domain.properties.HasName;
 import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.lang.ArchCondition;
 import com.tngtech.archunit.lang.ArchRule;
+import com.tngtech.archunit.lang.CompositeArchRule;
 import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Stream;
-
-import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
-import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
-import static com.tngtech.archunit.library.dependencies.SlicesRuleDefinition.slices;
-import static org.assertj.core.api.Assertions.assertThat;
+import com.tngtech.archunit.library.dependencies.SlicesRuleDefinition;
 
 /**
- * Dependency rules R1–R7 of the backend template, plus "no cycles between modules" (architecture 7.7).
+ * Architecture rules R1–R9 (architecture 7.7), module boundaries (ADR-0001, architecture 7.4) and
+ * one schema per module (database P1). Test plan TC-ARC-01…04.
+ *
+ * <p>Some modules have no classes yet, so {@code allowEmptyShould(true)} keeps their rules green
+ * until the first classes appear.
+ *
+ * <p>Not checked here: one aggregate per transaction cannot be verified statically; schemas named
+ * in SQL are read from source text, not bytecode, by {@link NativeSqlSchemaTest} (SQL in Java) and
+ * {@link MigrationSchemaTest} (migration folders).
  */
 @AnalyzeClasses(packages = "com.cadence", importOptions = ImportOption.DoNotIncludeTests.class)
 class ArchitectureTest {
 
-    private static final String ROOT = "com.cadence.";
-    private static final Pattern MODULE = Pattern.compile("^com\\.cadence\\.([a-z]+)\\.(domain|application|infrastructure)\\b.*");
+    // ArchUnit reads the static @ArchTest fields; it never needs an instance.
+    private ArchitectureTest() {}
 
-    // ---------- TC-ARC-01: layers inside a module ----------
+    private static final String ROOT = "com.cadence";
 
-    @ArchTest
-    // TC-ARC-01 R1: domain không phụ thuộc application, infrastructure
-    static final ArchRule domainDoesNotDependOnOuterLayers =
-            noClasses().that().resideInAPackage("..domain..")
-                    .should().dependOnClassesThat().resideInAnyPackage("..application..", "..infrastructure..");
+    /** Business modules (architecture 7.2) and the schema each one owns (database P1). */
+    static final Map<String, String> MODULE_SCHEMAS =
+            Map.of(
+                    "account", "account",
+                    "catalog", "catalog",
+                    "inventory", "inventory",
+                    "ordering", "ordering",
+                    "payment", "payment",
+                    "notification", "notification");
 
-    @ArchTest
-    // TC-ARC-01 R2: domain không dùng Spring, JPA, Hibernate
-    static final ArchRule domainIsFrameworkFree =
-            noClasses().that().resideInAPackage("..domain..")
-                    .should().dependOnClassesThat()
-                    .resideInAnyPackage("org.springframework..", "jakarta.persistence..", "org.hibernate..");
-
-    @ArchTest
-    // TC-ARC-01 R3: application không phụ thuộc infrastructure
-    static final ArchRule applicationDoesNotDependOnInfrastructure =
-            noClasses().that().resideInAPackage("..application..")
-                    .should().dependOnClassesThat().resideInAPackage("..infrastructure..");
-
-    @ArchTest
-    // TC-ARC-01 R4: application không dùng kiểu JPA, Hibernate, Spring Data
-    static final ArchRule applicationDoesNotUsePersistenceTypes =
-            noClasses().that().resideInAPackage("..application..")
-                    .should().dependOnClassesThat()
-                    .resideInAnyPackage("jakarta.persistence..", "org.hibernate..", "org.springframework.data..");
-
-    @ArchTest
-    // TC-ARC-01 R6: controller chỉ nằm ở infrastructure.restapi
-    static final ArchRule controllersLiveInRestApi =
-            classes().that().areAnnotatedWith(org.springframework.web.bind.annotation.RestController.class)
-                    .should().resideInAPackage("..infrastructure.restapi..")
-                    .orShould().resideInAPackage("com.cadence.common.web..")
-                    .allowEmptyShould(true);
-
-    @ArchTest
-    // TC-ARC-01 R7: common không phụ thuộc module nghiệp vụ
-    static final ArchRule commonDoesNotDependOnModules =
-            classes().that().resideInAPackage("com.cadence.common..")
-                    .should(onlyDependOnCommonInsideTheApplication());
-
-    // ---------- TC-ARC-02: between modules ----------
-
-    @ArchTest
-    // TC-ARC-02 R5: module chỉ gọi module khác qua use case công khai, từ infrastructure
-    static final ArchRule modulesTalkOnlyThroughPublicUseCases =
-            classes().that().resideInAPackage("com.cadence.(*)..")
-                    .and().resideOutsideOfPackage("com.cadence.common..")
-                    .should(respectModuleBoundaries())
-                    .allowEmptyShould(true);
-
-    // ---------- TC-ARC-03: no cycles ----------
-
-    @ArchTest
-    // TC-ARC-03 Không có vòng phụ thuộc giữa các module
-    static final ArchRule noCyclesBetweenModules =
-            slices().matching("com.cadence.(*)..").should().beFreeOfCycles();
-
-    // ---------- TC-ARC-04: SQL stays inside its own schema ----------
-
-    private static final List<String> SCHEMAS =
-            List.of("account", "catalog", "inventory", "ordering", "payment", "notification");
-
-    @Test
-    @DisplayName("TC-ARC-04 Migration của một module không đọc, ghi schema của module khác")
-    void migrations_touchOnlyTheirOwnSchema() throws IOException {
-        Path root = Path.of("src/main/resources/db/migration");
-        List<String> violations = new ArrayList<>();
-        try (Stream<Path> files = Files.walk(root)) {
-            for (Path file : files.filter(p -> p.toString().endsWith(".sql")).toList()) {
-                String module = root.relativize(file).getName(0).toString();
-                String sql = Files.readString(file);
-                for (String schema : SCHEMAS) {
-                    if (schema.equals(module)) continue;
-                    Matcher m = Pattern.compile("\\b" + schema + "\\.[a-z_]+").matcher(sql);
-                    if (m.find()) violations.add(file + " references " + m.group());
-                }
-            }
-        }
-        assertThat(violations).isEmpty();
-    }
-
-    // ---------- conditions ----------
-
-    private static ArchCondition<JavaClass> onlyDependOnCommonInsideTheApplication() {
-        return new ArchCondition<>("only depend on com.cadence.common inside the application") {
-            @Override
-            public void check(JavaClass origin, ConditionEvents events) {
-                for (Dependency d : origin.getDirectDependenciesFromSelf()) {
-                    String target = d.getTargetClass().getPackageName();
-                    if (target.startsWith(ROOT) && !target.startsWith(ROOT + "common")) {
-                        events.add(SimpleConditionEvent.violated(d, d.getDescription()));
-                    }
-                }
-            }
-        };
-    }
+    private static final List<String> MODULES = List.copyOf(MODULE_SCHEMAS.keySet());
 
     /**
-     * Template R5: module A must not import B's domain or application, except that A's infrastructure
-     * (its adapters) may call B's public use cases (application.port.driving), use B's DTOs
-     * (application.dto) and listen to B's events (domain.event).
+     * Lombok is allowed in the domain. Its annotations vanish at compile time except the {@code
+     * @lombok.Generated} marker (lombok.config), which has no behaviour: allow exactly that class,
+     * not the whole lombok package.
      */
-    private static ArchCondition<JavaClass> respectModuleBoundaries() {
-        return new ArchCondition<>("respect module boundaries (template R5)") {
-            @Override
-            public void check(JavaClass origin, ConditionEvents events) {
-                Optional<String[]> from = moduleAndLayer(origin.getPackageName());
-                if (from.isEmpty()) return;
-                for (Dependency d : origin.getDirectDependenciesFromSelf()) {
-                    String targetPackage = d.getTargetClass().getPackageName();
-                    Optional<String[]> to = moduleAndLayer(targetPackage);
-                    if (to.isEmpty() || to.get()[0].equals(from.get()[0])) continue;
+    private static final DescribedPredicate<JavaClass> LOMBOK_GENERATED =
+            HasName.Predicates.name("lombok.Generated").forSubtype();
 
-                    String otherModule = ROOT + to.get()[0] + ".";
-                    boolean allowed = from.get()[1].equals("infrastructure")
-                            && (targetPackage.startsWith(otherModule + "application.port.driving")
-                                || targetPackage.startsWith(otherModule + "application.dto")
-                                || targetPackage.startsWith(otherModule + "domain.event"));
-                    if (!allowed) events.add(SimpleConditionEvent.violated(d, d.getDescription()));
+    // ---------- Layers inside a module ----------
+
+    @ArchTest
+    static final ArchRule R1_DOMAIN_DOES_NOT_DEPEND_ON_OUTER_LAYERS =
+            noClasses()
+                    .that()
+                    .resideInAPackage(ROOT + "..domain..")
+                    .should()
+                    .dependOnClassesThat()
+                    .resideInAnyPackage(ROOT + "..application..", ROOT + "..infrastructure..")
+                    .because("R1: outer layers depend on the domain, never the reverse")
+                    .allowEmptyShould(true);
+
+    @ArchTest
+    static final ArchRule R2_R4_DOMAIN_IS_PURE_AND_KNOWS_NO_OTHER_CONTEXT =
+            forEachModule(
+                    "R2, R4: a module's domain only uses the JDK, common.domain and its own domain",
+                    name ->
+                            classes()
+                                    .that()
+                                    .resideInAPackage(module(name) + ".domain..")
+                                    .should()
+                                    .onlyDependOnClassesThat(
+                                            resideInAnyPackage(
+                                                            "java..",
+                                                            ROOT + ".common.domain..",
+                                                            module(name) + ".domain..")
+                                                    .or(LOMBOK_GENERATED))
+                                    .because(
+                                            "R2: no framework or ORM in the domain; R4: a domain"
+                                                    + " does not know other contexts"));
+
+    @ArchTest
+    static final ArchRule R3_APPLICATION_DOES_NOT_DEPEND_ON_INFRASTRUCTURE =
+            noClasses()
+                    .that()
+                    .resideInAPackage(ROOT + "..application..")
+                    .should()
+                    .dependOnClassesThat()
+                    .resideInAPackage(ROOT + "..infrastructure..")
+                    .because("R3: use cases reach the outside world only through their own ports")
+                    .allowEmptyShould(true);
+
+    @ArchTest
+    static final ArchRule R7_CONTROLLERS_LIVE_IN_RESTAPI =
+            classes()
+                    .that()
+                    .areAnnotatedWith("org.springframework.web.bind.annotation.RestController")
+                    .or()
+                    .areAnnotatedWith("org.springframework.stereotype.Controller")
+                    .should()
+                    .resideInAPackage("..infrastructure.restapi..")
+                    .because("R7: controllers are driving adapters")
+                    .allowEmptyShould(true);
+
+    @ArchTest
+    static final ArchRule R9_APPLICATION_DOES_NOT_USE_PERSISTENCE_TYPES =
+            noClasses()
+                    .that()
+                    .resideInAPackage(ROOT + "..application..")
+                    .should()
+                    .dependOnClassesThat()
+                    .resideInAnyPackage(
+                            "jakarta.persistence..",
+                            "org.hibernate..",
+                            "org.springframework.data..")
+                    .because(
+                            "R9: ports never expose persistence types; adapters convert to domain"
+                                    + " objects or DTOs")
+                    .allowEmptyShould(true);
+
+    // ---------- Between modules (ADR-0001, architecture 7.4) ----------
+
+    @ArchTest
+    static final ArchRule R5_APPLICATION_DOES_NOT_REACH_INTO_OTHER_CONTEXTS =
+            forEachModule(
+                    "R5: a module's application layer does not depend on other modules",
+                    name ->
+                            noClasses()
+                                    .that()
+                                    .resideInAPackage(module(name) + ".application..")
+                                    .should()
+                                    .dependOnClassesThat(resideInAnyPackage(otherModules(name)))
+                                    .because(
+                                            "R5: a use case talks to another context through its"
+                                                    + " own port; the ACL adapter lives in"
+                                                    + " infrastructure"));
+
+    @ArchTest
+    static final ArchRule R5_R6_INFRASTRUCTURE_USES_ONLY_PUBLIC_PARTS_OF_OTHER_CONTEXTS =
+            forEachModule(
+                    "R5, R6: infrastructure uses other modules only through their application layer"
+                            + " or domain events",
+                    name ->
+                            noClasses()
+                                    .that()
+                                    .resideInAPackage(module(name) + ".infrastructure..")
+                                    .should()
+                                    .dependOnClassesThat(
+                                            resideInAnyPackage(otherInternals(name))
+                                                    .and(
+                                                            not(
+                                                                    resideInAnyPackage(
+                                                                            otherEvents(name)))))
+                                    .because(
+                                            "R5: other contexts are reached through their"
+                                                + " application layer; R6: their domain events may"
+                                                + " be listened to"));
+
+    @ArchTest
+    static final ArchRule R8_COMMON_DOES_NOT_DEPEND_ON_BUSINESS_MODULES =
+            noClasses()
+                    .that()
+                    .resideInAPackage(ROOT + ".common..")
+                    .should()
+                    .dependOnClassesThat()
+                    .resideInAnyPackage(modulePackages(MODULES))
+                    .because("R8: the shared kernel is below every module")
+                    .allowEmptyShould(true);
+
+    @ArchTest
+    static final ArchRule R8_SHARED_KERNEL_IS_PURE =
+            classes()
+                    .that()
+                    .resideInAnyPackage(ROOT + ".common.domain..", ROOT + ".common.application..")
+                    .should()
+                    .onlyDependOnClassesThat(
+                            resideInAnyPackage(
+                                            "java..",
+                                            ROOT + ".common.domain..",
+                                            ROOT + ".common.application..")
+                                    .or(LOMBOK_GENERATED))
+                    .because(
+                            "R8: common/domain and common/application contain no framework code,"
+                                    + " so every module's domain and use cases can use them")
+                    .allowEmptyShould(true);
+
+    // ---------- Package structure ----------
+
+    @ArchTest
+    static final ArchRule NO_CYCLES_BETWEEN_PACKAGES =
+            SlicesRuleDefinition.slices()
+                    .matching(ROOT + ".(**)")
+                    .should()
+                    .beFreeOfCycles()
+                    .because(
+                            "a cycle ties packages together: neither can change, move or be"
+                                    + " tested without the other");
+
+    // ---------- Persistence ----------
+
+    @ArchTest
+    static final ArchRule JPA_ONLY_IN_PERSISTENCE_ADAPTERS =
+            noClasses()
+                    .that()
+                    .resideOutsideOfPackage(ROOT + "..infrastructure.persistence..")
+                    .should()
+                    .dependOnClassesThat()
+                    .resideInAnyPackage("jakarta.persistence..", "org.hibernate..")
+                    .because("JPA entities and repositories live in infrastructure/persistence")
+                    .allowEmptyShould(true);
+
+    @ArchTest
+    static final ArchRule ENTITIES_MAP_TO_THEIR_MODULE_SCHEMA =
+            forEachModule(
+                    "Database P1: every JPA entity declares @Table(schema = <its module's schema>)",
+                    name ->
+                            classes()
+                                    .that()
+                                    .areAnnotatedWith("jakarta.persistence.Entity")
+                                    .and()
+                                    .resideInAPackage(module(name) + "..")
+                                    .should(declareTableSchema(MODULE_SCHEMAS.get(name)))
+                                    .because(
+                                            "database P1: a module only reads and writes its own"
+                                                    + " schema"));
+
+    // ---------- API documentation ----------
+
+    @ArchTest
+    static final ArchRule OPENAPI_ANNOTATIONS_ONLY_IN_WEB_ADAPTERS =
+            noClasses()
+                    .that()
+                    .resideOutsideOfPackages(
+                            ROOT + "..infrastructure.restapi..", ROOT + ".common.web..")
+                    .should()
+                    .dependOnClassesThat()
+                    .resideInAnyPackage("io.swagger..", "org.springdoc..")
+                    .because(
+                            "OpenAPI is a detail of the REST adapter; domain and use"
+                                    + " cases stay framework-free, so request/response records that"
+                                    + " carry @Schema live in infrastructure/restapi")
+                    .allowEmptyShould(true);
+
+    // ---------- Helpers ----------
+
+    private static String module(String name) {
+        return ROOT + "." + name;
+    }
+
+    /** Builds the same rule for every module and reports it under one short description. */
+    private static ArchRule forEachModule(String description, Function<String, ArchRule> ruleFor) {
+        List<ArchRule> rules =
+                MODULES.stream().map(name -> ruleFor.apply(name).allowEmptyShould(true)).toList();
+        return CompositeArchRule.of(rules).as(description).allowEmptyShould(true);
+    }
+
+    private static String[] modulePackages(List<String> modules) {
+        return modules.stream().map(name -> module(name) + "..").toArray(String[]::new);
+    }
+
+    private static String[] otherModules(String self) {
+        return modulePackages(MODULES.stream().filter(name -> !name.equals(self)).toList());
+    }
+
+    private static String[] otherInternals(String self) {
+        return MODULES.stream()
+                .filter(name -> !name.equals(self))
+                .flatMap(name ->
+                        java.util.stream.Stream.of(
+                                module(name) + ".domain..", module(name) + ".infrastructure.."))
+                .toArray(String[]::new);
+    }
+
+    private static String[] otherEvents(String self) {
+        return MODULES.stream()
+                .filter(name -> !name.equals(self))
+                .map(name -> module(name) + ".domain.event..")
+                .toArray(String[]::new);
+    }
+
+    private static ArchCondition<JavaClass> declareTableSchema(String schema) {
+        return new ArchCondition<>("declare @Table(schema = \"" + schema + "\")") {
+            @Override
+            public void check(JavaClass entity, ConditionEvents events) {
+                String actual =
+                        entity.tryGetAnnotationOfType("jakarta.persistence.Table")
+                                .flatMap(table -> table.get("schema"))
+                                .map(Object::toString)
+                                .orElse("");
+                if (!schema.equals(actual)) {
+                    events.add(
+                            SimpleConditionEvent.violated(
+                                    entity,
+                                    "%s maps to schema '%s' instead of '%s'"
+                                            .formatted(entity.getName(), actual, schema)));
                 }
             }
         };
-    }
-
-    private static Optional<String[]> moduleAndLayer(String packageName) {
-        Matcher m = MODULE.matcher(packageName);
-        if (!m.matches() || m.group(1).equals("common")) return Optional.empty();
-        return Optional.of(new String[]{m.group(1), m.group(2)});
     }
 }
