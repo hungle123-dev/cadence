@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Sản phẩm** | Cadence: website bán giày và đồ thể thao (storefront + trang quản trị) |
-| **Phiên bản tài liệu** | 1.5 |
+| **Phiên bản tài liệu** | 1.6 |
 | **Trạng thái** | Đã duyệt (baseline). Mọi thay đổi sau này ghi vào lịch sử thay đổi |
 | **Nguồn tham khảo** | Prototype trong `prototype/` (16 trang HTML, dữ liệu giả lập). Chỉ là bản phác để tham khảo, xem A-05 |
 | **Tài liệu liên quan** | `02-architecture.md`, `adr/`, `03-database.md`, `04-test-plan.md` |
@@ -19,6 +19,7 @@
 | 1.3 | 2026-11-24 | Ghi rõ ảnh hiện tại là ảnh mock (A-04); upload ảnh riêng lên object storage ở giai đoạn 2; FR-ADM-PRD-02 và mục 2.2 cập nhật theo |
 | 1.4 | 2026-11-24 | Review độ rõ ràng: chốt thêm 30 quyết định D-09…D-38 (mục 10). Prototype chỉ là bản tham khảo (A-05). Thêm C-08, C-09, FR-CART-08, FR-CHK-12, FR-CHK-13, FR-ADM-05, nhóm FR-CNT (trang nội dung), nhóm NFR-DEMO (môi trường demo), BR-PRC-08, BR-ORD-07; sửa FR-CAT-02, FR-CART-03, FR-CHK-02, FR-CHK-03, FR-PAY-07, FR-PAY-10, FR-PAY-11, FR-ORD-01, FR-ACC-01, FR-ACC-05, FR-ADM-01, FR-ADM-02, FR-ADM-ORD-07, FR-ADM-ORD-08, FR-ADM-ORD-10, FR-ADM-PRD-03, BR-PRC-03, BR-VCH-01, BR-VCH-04, BR-INV-01, NFR-SEC-02, NFR-SEC-08, mục 2.1, 3, 6, 9 |
 | 1.5 | 2026-11-24 | Kiểm chéo toàn bộ tài liệu (mỗi yêu cầu đối chiếu với mọi yêu cầu cùng đối tượng). Chốt D-39…D-60 (mục 10). Thêm vòng đời sản phẩm (mục 6.5), khuyến mãi có thời hạn (BR-PRC-09), ảnh lưu theo khoá (BR-CAT-01), link truy cập đơn cho khách vãng lai (FR-ORD-07), nhãn suy ra (FR-CAT-09), slug cố định (BR-CAT-02), FR-ADM-06, FR-ADM-PRD-08, FR-ADM-PRD-09. Sửa mâu thuẫn FR-CAT-07 × NFR-SEO-06, BR-INV-04, mục 6.2 (thêm `EXPIRED → REFUND_PENDING`, `FAILED → PENDING`), mục 2.1, 2.2, 3.1, 8; đổi chỗ mục 4.11 và 4.12 |
+| 1.6 | 2026-11-25 | Tìm kiếm (FR-CAT-08) tạm hoãn tới khi chốt search engine (D-61) |
 
 ### Cách đọc tài liệu này
 
@@ -163,7 +164,7 @@ Danh mục sản phẩm và voucher **không** có màn hình quản lý trong M
 | FR-CAT-07 | Sản phẩm **sắp mở bán** (mục 6.5) không xuất hiện ở PLP, tìm kiếm và sitemap. Vào thẳng PDP thì trang trả HTTP 200, hiện đếm ngược tới giờ mở bán, **không** chọn size hay thêm vào giỏ được, và có `noindex` (NFR-SEO-06). Tới giờ mở bán, sản phẩm tự chuyển sang đang bán mà không cần thao tác nào | S |
 | FR-CAT-09 | Nhãn trên thẻ sản phẩm được **suy ra**, không nhập tay: "Mới" khi giờ mở bán nằm trong 30 ngày gần nhất; "−N%" khi có khuyến mãi đang hiệu lực (N làm tròn xuống); "Hết hàng" khi mọi variant có ATS = 0 | S |
 
-**Tìm kiếm (FR-CAT-08, ưu tiên M):**
+**Tìm kiếm (FR-CAT-08, ưu tiên M, tạm hoãn theo D-61):**
 - Không phân biệt hoa thường và dấu: "giay chay bo" khớp "Giày chạy bộ", "đ" tương đương "d".
 - Có bảng từ đồng nghĩa: `sneaker → giày`, `tee → áo thun`, `hoodie → áo nỉ`, `running → chạy bộ`…
 - Mỗi từ khoá phải khớp **đầu** một từ trong dữ liệu ("ni" không khớp "organic").
@@ -657,3 +658,4 @@ D-39 trở đi được chốt ở v1.5 sau một lượt kiểm chéo: mỗi y�
 | D-58 | "Trừ số đã hoàn" trong tổng chi tiêu và doanh thu có cần không? | Không: đơn bị hoàn tiền luôn ở `CANCELLED` nên đã bị loại. Bỏ câu chữ thừa | FR-ACC-05, FR-ADM-01, D-05, D-30 |
 | D-59 | Đổi slug của sản phẩm đã đăng bán? | Không cho đổi, để link và thứ hạng tìm kiếm không gãy | BR-CAT-02, NFR-SEO-02 |
 | D-60 | Trang danh mục có tham số lọc có được index riêng không? | Không; canonical trỏ về trang không có tham số | NFR-SEO-02 |
+| D-61 | Tìm kiếm làm bằng full-text của PostgreSQL hay search engine riêng? | Search engine riêng (Elasticsearch). FR-CAT-08 tạm hoãn: chưa làm cho tới khi chốt cấu hình hạ tầng (C-07: RAM của VPS) và cách đồng bộ dữ liệu sang index. Các yêu cầu khác của danh mục không phụ thuộc tìm kiếm | FR-CAT-08, mục 3.2, TC-CAT-07 |

@@ -441,7 +441,15 @@ Viết outbox tay (một bảng, một tác vụ nền) thay vì dùng thư vi�
 
 ### 9.4 API và lỗi
 
-Theo template: URL `/api/v1/<module>/<tài-nguyên>`, admin `/api/v1/<module>/admin/<tài-nguyên>`; thành công trả `{"data": …}`; lỗi trả **Problem Details** (RFC 9457) kèm `code` ổn định (`INVENTORY_OUT_OF_STOCK`, `ORDERING_VOUCHER_MIN_NOT_MET`, `ORDERING_INVALID_TRANSITION`…). Frontend hiển thị thông báo theo `code`, không theo chuỗi `detail`.
+Theo template: URL `/api/v1/<module>/<tài-nguyên>`, admin `/api/v1/<module>/admin/<tài-nguyên>`; thành công trả `{"data": …}`; lỗi trả **Problem Details** (RFC 9457) kèm `code` ổn định (`INVENTORY_OUT_OF_STOCK`, `ORDERING_VOUCHER_MIN_NOT_MET`, `ORDERING_INVALID_TRANSITION`…) và `requestId` (trùng header `X-Request-Id` và log). Frontend hiển thị thông báo theo `code`, không theo chuỗi `detail`.
+
+| Loại lỗi | `code` |
+|---|---|
+| Lỗi nghiệp vụ của module | Mã của module, ví dụ `CATALOG_INVALID_FILTER`; sai giá trị thì kèm `invalidParams` |
+| Sai kiểu dữ liệu ở request (Bean Validation, không đổi được kiểu) | `VALIDATION_ERROR`, kèm `invalidParams` liệt kê mọi tham số sai |
+| Hai người cùng sửa (`@Version`) | `CONCURRENT_UPDATE` |
+| Lỗi Spring MVC tự xử lý: đường dẫn không tồn tại, sai method, body JSON không đọc được… | Suy ra từ HTTP status: `NOT_FOUND`, `METHOD_NOT_ALLOWED`, `BAD_REQUEST`… |
+| Mọi lỗi 5xx | `INTERNAL_ERROR`; chi tiết chỉ nằm trong log, tìm theo `requestId` |
 
 ### 9.5 Tiền, thời gian, ID
 
