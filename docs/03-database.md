@@ -121,7 +121,7 @@ CREATE TABLE catalog.products (
     gender           text NOT NULL CHECK (gender IN ('MEN', 'WOMEN', 'UNISEX', 'KIDS')),
     sport            text NOT NULL CHECK (sport IN ('RUNNING', 'TRAIL', 'LIFESTYLE', 'TRAINING', 'FOOTBALL')),
     description      text NOT NULL DEFAULT '',
-    specs            jsonb NOT NULL DEFAULT '{}',          -- thông số hiển thị: {"Trọng lượng": "228 g", …}
+    specs            jsonb NOT NULL DEFAULT '[]',          -- [{"name": "Trọng lượng", "value": "228 g"}, …], theo thứ tự hiển thị
     status           text NOT NULL CHECK (status IN ('DRAFT', 'PUBLISHED', 'ARCHIVED')),   -- SRS mục 6.5
     launch_at        timestamptz,                          -- giờ mở bán; đăng bán không lên lịch thì = lúc đăng
     list_price       bigint NOT NULL CHECK (list_price > 0),        -- giá ở mức sản phẩm (SRS BR-PRC-08)
@@ -134,8 +134,6 @@ CREATE TABLE catalog.products (
     review_count     integer NOT NULL DEFAULT 0,
     seo_title        text,
     seo_description  text,
-    search_text      text NOT NULL DEFAULT '',             -- đã bỏ dấu, chữ thường; ứng dụng tính
-    search_vector    tsvector GENERATED ALWAYS AS (to_tsvector('simple', search_text)) STORED,
     -- audit
     CHECK (status = 'DRAFT' OR launch_at IS NOT NULL),
     CHECK ((sale_price IS NULL) = (sale_starts_at IS NULL)),
@@ -143,7 +141,6 @@ CREATE TABLE catalog.products (
 );
 CREATE INDEX products_listing_idx ON catalog.products (category_id, featured_rank)
     WHERE status = 'PUBLISHED';
-CREATE INDEX products_search_idx ON catalog.products USING gin (search_vector);
 
 CREATE TABLE catalog.colorways (
     id            uuid PRIMARY KEY,
@@ -192,7 +189,8 @@ CREATE TABLE catalog.back_in_stock_requests (
 
 **Vì sao:**
 
-- **Tìm kiếm không dấu (FR-CAT-08).** Ứng dụng ghép tên, danh mục, môn thể thao, giới tính, tên màu thành `search_text`, rồi bỏ dấu và chuyển chữ thường bằng `java.text.Normalizer` (giống hàm `CAD.norm` của prototype). PostgreSQL tự tính `search_vector` từ cột đó. Không dùng extension `unaccent` vì hàm này không được đánh dấu `IMMUTABLE`, nên không dùng trực tiếp được trong cột sinh tự động hay index, phải bọc qua một hàm tự viết. Làm ở Java thì đơn giản hơn và có unit test. Câu truy vấn: `search_vector @@ to_tsquery('simple', 'giay:* & chay:*')` (`:*` là khớp tiền tố, đúng luật "khớp đầu từ").
+- **Tìm kiếm (FR-CAT-08) chưa làm.** Đã quyết định dùng search engine riêng (Elasticsearch) thay cho full-text của PostgreSQL; thiết kế index và cách đồng bộ sẽ viết khi chốt. Bảng `products` vì vậy không có cột tìm kiếm nào.
+- **`specs` là mảng, không phải object**: `jsonb` không giữ thứ tự khoá của object, mà bảng thông số trên PDP phải hiện đúng thứ tự đã nhập.
 - **Giá đặt ở sản phẩm, không ở variant** (SRS BR-PRC-08, D-12): mọi size, mọi màu cùng giá. Nếu lưu giá ở từng variant thì 6 size sẽ có 6 bản sao cùng một con số, và có nguy cơ lệch nhau khi sửa. Lọc theo khoảng giá so với giá đang bán của sản phẩm tại thời điểm truy vấn (ý về khuyến mãi bên dưới). Khi sau này cần giá theo size, chuyển cột xuống `variants` bằng một migration.
 - **`available` là phi chuẩn hoá có chủ đích** (P5): bản sao của "ATS > 0", để PLP lọc size và đếm facet bằng một truy vấn mà không đọc sang `inventory` (kiến trúc 7.8). Index một phần `WHERE available` chỉ chứa variant còn hàng nên rất nhỏ.
 - **`ON DELETE CASCADE`** chỉ có tác dụng với sản phẩm **nháp**. Sản phẩm đã có đơn thì không bao giờ bị xoá (FR-ADM-PRD-06), chỉ chuyển `ARCHIVED`; dòng đơn đã có snapshot nên không phụ thuộc vào bảng này.
@@ -737,7 +735,7 @@ Kết quả: dù code có lỗi hay bị khai thác SQL injection, ứng dụng 
 | Thứ tự lần đầu | `account` → `catalog` → `inventory` → `ordering` → `payment` → `notification` → phân quyền (mục 6) |
 | Đã chạy thì không sửa | Muốn đổi thì thêm file mới. Flyway kiểm checksum và báo lỗi nếu file cũ bị sửa |
 | Hibernate | `ddl-auto: validate`: chỉ kiểm khớp, không tự tạo bảng |
-| Dữ liệu mẫu | Thư mục riêng `db/seed/dev/`, chỉ bật ở profile `dev` và môi trường demo. Lấy từ `data.js` của prototype: 40 sản phẩm, tồn kho, 3 voucher mẫu, danh mục, 1 tài khoản `STAFF` dùng thử. Ảnh là ảnh mock (SRS A-04). Tài khoản `ADMIN` **không** nằm trong dữ liệu mẫu mà tạo theo SRS FR-ADM-05. Môi trường demo dựng lại dữ liệu này mỗi đêm (NFR-DEMO-02) |
+| Dữ liệu mẫu | Thư mục riêng `db/seed/dev/`, chỉ bật ở profile `dev` và môi trường demo, mỗi module một file `R__seed_<module>.sql` (Flyway chạy lại khi file đổi, nên file tự xoá dữ liệu mẫu cũ trước khi thêm). Test tích hợp nạp cùng file đó bằng `@Sql`. Lấy từ `data.js` của prototype: 42 sản phẩm, 18 danh mục (đã có, `R__seed_catalog.sql`); tồn kho, 3 voucher mẫu, 1 tài khoản `STAFF` dùng thử (thêm cùng module tương ứng). Ảnh là ảnh mock (SRS A-04). Tài khoản `ADMIN` **không** nằm trong dữ liệu mẫu mà tạo theo SRS FR-ADM-05. Môi trường demo dựng lại dữ liệu này mỗi đêm (NFR-DEMO-02) |
 | Thay đổi không làm gián đoạn | Thêm cột: cho phép null hoặc có giá trị mặc định. Đổi tên cột: thêm cột mới → ghi cả hai → chuyển đọc → xoá cột cũ, qua nhiều lần phát hành |
 
 ---
@@ -774,7 +772,7 @@ Sao lưu: `pg_dump` hằng ngày (kiến trúc 11.2), giữ 7 bản gần nhất
 | FR-PAY-06 (IPN muộn, trả hai lần) | Không ràng buộc duy nhất trên giao dịch `PAID`; domain tạo hoàn tiền (4.4) |
 | FR-ADM-04, FR-ACC-06 (thu hồi phiên) | `PRINCIPAL_NAME` dạng `staff:<id>`, `password_changed_at` |
 | FR-CAT-02 (lọc size còn hàng) | `variants.available` + index một phần |
-| FR-CAT-08 (tìm không dấu) | `search_text` + `search_vector` + GIN |
+| FR-CAT-08 (tìm kiếm) | Chưa làm: sẽ dùng Elasticsearch (mục 4.1) |
 | NFR-SEC-07 (nhật ký đăng nhập) | `staff_login_logs` |
 | Mục 6 SRS (ràng buộc giữa các trục) | `CHECK` trên `orders` |
 | BR-PRC-08 (cùng giá mọi variant) | Giá đặt ở `products`, không ở `variants` |

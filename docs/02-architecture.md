@@ -168,7 +168,7 @@ Tương tự với PDP **sắp mở bán** (SRS FR-CAT-07): HTML tạo sẵn ch�
 
 - URL thân thiện: `/san-pham/{slug}`, `/danh-muc/{slug}`. Slug của sản phẩm đã đăng bán không đổi (BR-CAT-02).
 - `generateMetadata` cho tiêu đề, mô tả, Open Graph, canonical. Tiêu đề và mô tả mặc định do backend sinh (NFR-SEO-03); admin chỉ ghi đè. Trang có tham số lọc hoặc sắp xếp: canonical về trang không tham số.
-- `sitemap.xml` sinh từ danh sách sản phẩm **đang bán** (không gồm sắp mở bán); `robots.txt` chặn `/admin`, `/gio-hang`, `/thanh-toan`, `/tai-khoan`, `/don-hang`.
+- `sitemap.xml` sinh từ danh sách sản phẩm **đang bán** (không gồm sắp mở bán), và các danh mục có ít nhất một sản phẩm đang bán (trang danh mục rỗng không có gì để index); `robots.txt` chặn `/admin`, `/gio-hang`, `/thanh-toan`, `/tai-khoan`, `/don-hang`.
 - Dữ liệu có cấu trúc JSON-LD `Product` (tên, ảnh, giá VND, tình trạng còn hàng) trên PDP.
 - Sản phẩm không tồn tại, nháp hoặc ngừng bán trả **HTTP 404 thật** (`notFound()`), không phải trang 200 báo lỗi. Sản phẩm sắp mở bán trả 200 kèm `robots: noindex` (SRS mục 6.5).
 - Ảnh qua `next/image` (đúng kích thước, lazy load) để đạt LCP (NFR-03). Host ảnh được phép đọc từ cấu hình vì ảnh hiện là mock và sẽ đổi nguồn (mục 9.7).
@@ -464,7 +464,7 @@ Theo template: URL `/api/v1/<module>/<tài-nguyên>`, admin `/api/v1/<module>/ad
 | Việc | Cách làm | Vì sao |
 |---|---|---|
 | Lưu ảnh | Bảng `catalog.product_images`: phối màu, **khoá ảnh** (đường dẫn tương đối trong nguồn ảnh), chiều rộng, chiều cao, mô tả thay thế (`alt`), thứ tự (SRS BR-CAT-01) | Dữ liệu không chứa host nào, nên đổi nguồn ảnh không phải sửa dòng nào (A-04). Chiều rộng, chiều cao để `next/image` giữ chỗ, tránh nhảy bố cục (NFR-03) |
-| Ghép URL | `ImageUrlResolver` ở tầng adapter của `catalog`: URL = `cadence.images.base-url` + khoá. Domain chỉ biết khoá | Đổi nguồn ảnh chỉ đổi một biến môi trường, không sửa code |
+| Ghép URL | `ImageUrls` ở tầng infrastructure của `catalog`: thay `{key}` trong `cadence.catalog.image-url-template` bằng khoá ảnh. Domain chỉ biết khoá | Đổi nguồn ảnh chỉ đổi một biến môi trường, không sửa code. Dạng mẫu (template) thay vì "gốc + khoá" vì nguồn ảnh mock cần thêm tham số sau khoá (`?w=1600&h=1600`) |
 | Hiển thị | `next/image` với host cho phép đọc từ cùng biến môi trường | Như trên |
 | Snapshot đơn hàng | Dòng đơn lưu **khoá ảnh** tại lúc đặt (BR-ORD-01) | Đơn cũ vẫn hiện đúng ảnh dù sản phẩm đổi ảnh, và vẫn hiện được sau khi đổi nguồn ảnh |
 
@@ -684,7 +684,7 @@ Quyết định dễ đổi được ghi gọn ở đây. Chỉ quyết định 
 | Chống bán lố | Lệnh ghi có điều kiện | Khoá bi quan, khoá lạc quan, khoá Redis | [ADR-0002](adr/0002-giu-hang-bang-update-co-dieu-kien.md) |
 | Xác thực | Phiên server + cookie | JWT | [ADR-0003](adr/0003-phien-cookie-thay-vi-jwt.md) |
 | Frontend | Next.js SSR/ISR | SPA thuần, Thymeleaf | [ADR-0004](adr/0004-nextjs-render-phia-server.md) |
-| Tìm kiếm | PostgreSQL full-text, bỏ dấu ở tầng ứng dụng | Elasticsearch, Meilisearch | Đủ cho vài nghìn sản phẩm, không thêm hệ thống, dữ liệu luôn khớp. Đổi khi cần chịu lỗi gõ hoặc > 100.000 sản phẩm |
+| Tìm kiếm | **Đang xem lại**: chuyển sang Elasticsearch, chưa làm. Phần full-text PostgreSQL đã bỏ khỏi code | PostgreSQL full-text | Cần chốt lại SRS 3.2, C-07 (RAM của VPS) và cách đồng bộ index trước khi làm |
 | Kiểm ranh giới module | ArchUnit | Spring Modulith | Template đã có luật ArchUnit; ít phép màu hơn |
 | Outbox | Tự viết, chỉ cho email | Thư viện, outbox cho mọi sự kiện | Chỉ một chỗ cần |
 | Reverse proxy | Nginx | Caddy | Phổ biến hơn trong môi trường doanh nghiệp |
