@@ -1,11 +1,16 @@
 package com.cadence.common.web;
 
-import com.cadence.TestcontainersConfiguration;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 import org.junit.jupiter.api.DisplayName;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -18,11 +23,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import com.cadence.TestcontainersConfiguration;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -30,8 +31,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ExtendWith(OutputCaptureExtension.class)
 class ObservabilityIntegrationTest {
 
-    @Autowired
-    MockMvc mvc;
+    @Autowired MockMvc mvc;
 
     @Test
     @DisplayName("TC-OPS-02 /actuator/health trả UP khi DB sống")
@@ -57,11 +57,13 @@ class ObservabilityIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(header().string(RequestIdFilter.HEADER, requestId));
 
-        String line = output.getOut().lines()
-                .filter(l -> l.contains("logging-probe-message"))
-                .findFirst()
-                .orElseThrow();
-        assertThat(line).startsWith("{");                       // structured JSON (ECS)
+        String line =
+                output.getOut()
+                        .lines()
+                        .filter(l -> l.contains("logging-probe-message"))
+                        .findFirst()
+                        .orElseThrow();
+        assertThat(line).startsWith("{"); // structured JSON (ECS)
         assertThat(line).contains("\"requestId\":\"" + requestId + "\"");
     }
 
@@ -77,11 +79,11 @@ class ObservabilityIntegrationTest {
     @RestController
     static class ProbeController {
 
-        private static final Logger log = LoggerFactory.getLogger(ProbeController.class);
+        private static final Logger LOG = LoggerFactory.getLogger(ProbeController.class);
 
         @GetMapping("/test/log")
         String log() {
-            log.info("logging-probe-message");
+            LOG.info("logging-probe-message");
             return "ok";
         }
     }

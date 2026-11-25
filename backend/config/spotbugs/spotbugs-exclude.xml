@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    SpotBugs exceptions. Same rule as Checkstyle: fix the code, not the rule. Only two kinds of
+    line are allowed here, each with its reason next to it:
+
+    1. Scope rule: a whole scope (generated code, a framework pattern, test code) where the
+       finding is never a bug.
+    2. Proven false positive: exactly one class and one pattern, with a comment naming the test
+       that proves the code is safe.
+
+    @SuppressFBWarnings in code is not used.
+-->
+<FindBugsFilter>
+
+    <!-- ===== 1. Scope rules ===== -->
+
+    <!-- S1: JPA entity fields are written by Hibernate through reflection; read-only entities
+         never assign them in code. -->
+    <Match>
+        <Bug pattern="UWF_UNWRITTEN_FIELD"/>
+        <Package name="~com\.cadence\..*\.infrastructure\.persistence\.entity"/>
+    </Match>
+
+    <!-- S2: not applied to the project. %n matters for text printed to a console or file; Cadence
+         only formats SQL (line breaks are whitespace there) and logs through SLF4J. -->
+    <Match>
+        <Bug pattern="VA_FORMAT_STRING_USES_NEWLINE"/>
+    </Match>
+
+    <!-- S3: tests pass null on purpose to check that a constructor or a check rejects it
+         (NONVIRTUAL: a constructor; NONNULL_PARAM_VIOLATION: a method such as
+         Preconditions.requireNonNull, which SpotBugs reads as "never null"). -->
+    <Match>
+        <Bug pattern="NP_NULL_PARAM_DEREF_NONVIRTUAL,NP_NONNULL_PARAM_VIOLATION"/>
+        <Class name="~.*Test"/>
+    </Match>
+
+    <!-- S5: MapStruct writes *MapperImpl at compile time; it is generated code, like the folders
+         Checkstyle skips. Our part of a mapper (the interface and its default methods) is still
+         checked, because SpotBugs reads those in the interface's own class file. -->
+    <Match>
+        <Class name="~.*\.infrastructure\.mapper\..*MapperImpl"/>
+    </Match>
+
+    <!-- ===== 2. Proven false positives ===== -->
+
+    <!-- S4: the client's id is echoed only when it matches [A-Za-z0-9._-]{8,64}, so no CR/LF can
+         reach the header. SpotBugs cannot see the regex.
+         Proof: RequestIdFilterTest.doFilter_replacesAnUnsafeIdSoClientsCannotInjectIntoLogs -->
+    <Match>
+        <Bug pattern="HRS_REQUEST_PARAMETER_TO_HTTP_HEADER"/>
+        <Class name="com.cadence.common.web.RequestIdFilter"/>
+    </Match>
+
+</FindBugsFilter>

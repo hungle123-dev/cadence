@@ -1,18 +1,25 @@
 package com.cadence.common.domain.util;
 
-/** A failed check is a programming error: IllegalArgumentException, not a business error. */
+/**
+ * One-line argument checks that name the field, instead of {@code Objects.requireNonNull} and
+ * {@code if ... throw} spread around. A failed check is a programming error, so it throws {@link
+ * IllegalArgumentException}, not a business exception.
+ */
 public final class Preconditions {
 
-    private Preconditions() {
-    }
+    private Preconditions() {}
 
-    public static <T> T requireNonNull(T value, String field) {
-        if (value == null) throw new IllegalArgumentException(field + " must not be null");
+    public static <T> T requireNonNull(T value, String fieldName) {
+        if (value == null) {
+            throw new IllegalArgumentException(fieldName + " must not be null");
+        }
         return value;
     }
 
-    public static String requireNotBlank(String value, String field) {
-        if (value == null || value.isBlank()) throw new IllegalArgumentException(field + " must not be blank");
+    public static String requireNotBlank(String value, String fieldName) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(fieldName + " must not be blank");
+        }
         return value;
     }
 }

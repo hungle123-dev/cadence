@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suppressions PUBLIC
+        "-//Checkstyle//DTD SuppressionFilter Configuration 1.2//EN"
+        "https://checkstyle.org/dtds/suppressions_1_2.dtd">
+
+<!--
+    Scope rules for Checkstyle.
+
+    Every line here is a rule for a whole scope (main / test / generated), never a patch for
+    one file that fails a check. A new line comes with its reason written next to it.
+    @SuppressWarnings("checkstyle:...") in code is not supported.
+-->
+<suppressions>
+
+    <!-- Generated code is not written by us -->
+    <suppress files="[\\/]generated[\\/]"           checks=".*"/>
+    <suppress files="[\\/]generated-sources[\\/]"   checks=".*"/>
+    <suppress files="[\\/]target[\\/]"              checks=".*"/>
+
+    <!-- Method names: main uses camelCase, test uses method_behaviour -->
+    <suppress files="src[\\/]test[\\/]"     id="mainMethodName"/>
+    <suppress files="src[\\/]main[\\/]"     id="testMethodName"/>
+
+    <!-- Test data reads better as literals: assertThat(price).isEqualTo(1_290_000) -->
+    <suppress files="src[\\/]test[\\/]"     checks="MagicNumber"/>
+
+</suppressions>

@@ -53,3 +53,6 @@ springdoc:
     enabled: ${API_DOCS_ENABLED:false}   # bật khi dev
   swagger-ui:
     enabled: ${API_DOCS_ENABLED:false}
+  # Success responses are JSON. Without this the spec says "*/*" (no controller sets produces),
+  # and the web app's generated types cannot find content["application/json"].
+  default-produces-media-type: application/json

@@ -1,12 +1,9 @@
 package com.cadence.common.domain.error;
 
+/** The request is valid but clashes with the current state (for example the price changed). */
 public abstract class ResourceConflictException extends DomainException {
 
-    protected ResourceConflictException(ErrorCode code) {
-        super(requireCategory(code, ErrorCategory.CONFLICT));
-    }
-
-    protected ResourceConflictException(ErrorCode code, String message) {
-        super(requireCategory(code, ErrorCategory.CONFLICT), message);
+    protected ResourceConflictException(ErrorCode errorCode) {
+        super(requireCategory(errorCode, ErrorCategory.CONFLICT));
     }
 }
