@@ -38,20 +38,24 @@ public record ProductListRequest(
                         example = "giay-chay-bo")
                 @Nullable String category,
         @Schema(description = "Repeatable category filter; not allowed together with category")
+                @RepeatableFilter
                 @Nullable List<String> categories,
-        @Schema(description = "Repeatable; values of one filter are OR-ed")
+        @Schema(description = "Repeatable; values of one filter are OR-ed") @RepeatableFilter
                 @Nullable List<@ValidEnum(enumClass = Gender.class) String> gender,
-        @Schema(description = "Repeatable")
+        @Schema(description = "Repeatable") @RepeatableFilter
                 @Nullable List<@ValidEnum(enumClass = Sport.class) String> sport,
         @Schema(description = "Repeatable; a product matches when any colorway has the colour")
+                @RepeatableFilter
                 @Nullable List<@ValidEnum(enumClass = ColorFamily.class) String> color,
         @Schema(description = "Repeatable; only sizes in stock match", example = "42")
+                @RepeatableFilter
                 @Nullable List<String> size,
         @Schema(
                         description =
                                 "Repeatable configured band, min-max or min- for the top one,"
                                         + " compared with the effective price",
                         example = "1000000-2000000")
+                @RepeatableFilter
                 @Nullable List<@Pattern(regexp = PRICE_BAND, message = MUST_BE_PRICE_BAND) String>
                         price,
         @Schema(

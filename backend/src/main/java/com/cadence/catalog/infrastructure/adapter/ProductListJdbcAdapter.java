@@ -161,19 +161,28 @@ public class ProductListJdbcAdapter implements ProductListReadPort {
         return inOrder(counts, order);
     }
 
-    /** A product counts once per colour family it has, whichever colorway has it. */
+    /**
+     * A product counts once per colour family it has. With a size chosen, the size must be in stock
+     * in a colorway of the colour being counted, exactly like the filter "colour + size": the
+     * product-level size clause is replaced by one tied to the grouped colorway.
+     */
     private List<FacetCount> colorFacet(ProductListQuery query, Instant now) {
-        Where where = where(query, now, Group.COLOR);
+        Where where = where(query, now, Group.COLOR).without(Group.SIZE);
+        String sizeInThisColorway =
+                query.sizes().isEmpty()
+                        ? ""
+                        : "\n  AND EXISTS (SELECT 1 FROM catalog.variants vs WHERE vs.colorway_id"
+                                + " = cw.id AND vs.available AND vs.size IN (:sizes))";
         Map<String, Long> counts =
                 countsBy(
                         """
                         SELECT cw.color_family AS value, count(DISTINCT p.id) AS n
                         FROM catalog.products p
                         JOIN catalog.colorways cw ON cw.product_id = p.id
-                        WHERE %s
+                        WHERE %s%s
                         GROUP BY cw.color_family
                         """
-                                .formatted(where.sql()),
+                                .formatted(where.sql(), sizeInThisColorway),
                         where);
         return inOrder(counts, ColorFamily.values());
     }

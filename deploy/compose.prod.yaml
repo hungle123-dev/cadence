@@ -23,6 +23,8 @@ services:
     image: ghcr.io/${GHCR_OWNER:?}/cadence-backend:${IMAGE_TAG:-latest}
     restart: unless-stopped
     environment:
+      # The only server environment is the public demo, which runs on the sample data (SRS 7.8)
+      SPRING_PROFILES_ACTIVE: demo
       DB_URL: jdbc:postgresql://db:5432/cadence
       DB_APP_USER: cadence_app
       DB_APP_PASSWORD: ${DB_APP_PASSWORD}

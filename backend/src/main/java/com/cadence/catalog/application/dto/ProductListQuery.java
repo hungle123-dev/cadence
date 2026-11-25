@@ -1,6 +1,7 @@
 package com.cadence.catalog.application.dto;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -43,12 +44,13 @@ public record ProductListQuery(
     private static final Pattern SIZE = Pattern.compile("\\d{1,2}(\\.5)?|XS|S|M|L|XL|XXL|OS");
 
     public ProductListQuery {
-        categories = List.copyOf(categories);
-        genders = List.copyOf(genders);
-        sports = List.copyOf(sports);
-        colors = List.copyOf(colors);
-        sizes = List.copyOf(sizes);
-        prices = List.copyOf(prices);
+        // A value sent twice filters the same as once: keep each value once, in the order sent.
+        categories = List.copyOf(new LinkedHashSet<>(categories));
+        genders = List.copyOf(new LinkedHashSet<>(genders));
+        sports = List.copyOf(new LinkedHashSet<>(sports));
+        colors = List.copyOf(new LinkedHashSet<>(colors));
+        sizes = List.copyOf(new LinkedHashSet<>(sizes));
+        prices = List.copyOf(new LinkedHashSet<>(prices));
         sort = sort == null ? ProductSort.FEATURED : sort; // FR-CAT-03 default
 
         // Names are the HTTP parameter names, because the client reads them.

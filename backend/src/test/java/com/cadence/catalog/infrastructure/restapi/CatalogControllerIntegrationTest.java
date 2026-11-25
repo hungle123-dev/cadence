@@ -2,6 +2,8 @@ package com.cadence.catalog.infrastructure.restapi;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Arrays;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,6 +57,19 @@ class CatalogControllerIntegrationTest extends CatalogIT {
 
         body.extractingPath("$.code").isEqualTo("VALIDATION_ERROR");
         body.extractingPath("$.invalidParams.length()").isEqualTo(3);
+    }
+
+    @Test
+    @DisplayName("Tham số lặp quá 30 giá trị bị từ chối trước khi tới database")
+    void list_capsTheValuesOfARepeatableFilter() {
+        String[] sizes = new String[31];
+        Arrays.fill(sizes, "42");
+
+        assertThat(mvc.get().uri("/v1/catalog/products").param("size", sizes))
+                .hasStatus(400)
+                .bodyJson()
+                .extractingPath("$.invalidParams[0].name")
+                .isEqualTo("size");
     }
 
     @Test
@@ -146,14 +161,20 @@ class CatalogControllerIntegrationTest extends CatalogIT {
     }
 
     @Test
-    @DisplayName("TC-SEO-03 Sitemap chỉ có sản phẩm đang bán")
-    void sitemap_listsOnlyProductsOnSale() {
+    @DisplayName("TC-SEO-03 Sitemap có mọi danh mục và chỉ sản phẩm đang bán")
+    void sitemap_listsEveryCategoryAndOnlyProductsOnSale() {
         var body = assertThat(mvc.get().uri("/v1/catalog/sitemap")).hasStatusOk().bodyJson();
 
         body.extractingPath("$.data.products[*].slug")
                 .asArray()
                 .contains("tempo-2", "flash-runner")
                 .doesNotContain("future-runner", "draft-runner", "archived-runner");
+        body.extractingPath("$.data.categories.length()").isEqualTo(18);
         body.extractingPath("$.data.categories[0].slug").isEqualTo("giay-chay-bo");
+        body.extractingPath("$.data.categories[0].updatedAt").isNotNull();
+        // No sample product is a football shoe: listed, without a lastmod
+        body.extractingPath("$.data.categories[?(@.slug == 'giay-bong-da')].updatedAt")
+                .asArray()
+                .containsExactly((Object) null);
     }
 }

@@ -1,0 +1,6 @@
+# Profile of the public demo (SRS 7.8). Same settings as production, plus the sample data.
+# Secrets still come from environment variables (deploy/compose.prod.yaml).
+spring:
+  flyway:
+    # Sample data (database doc 7, NFR-DEMO-02): dev and the demo only, never a real shop
+    locations: classpath:db/migration,classpath:db/seed/dev

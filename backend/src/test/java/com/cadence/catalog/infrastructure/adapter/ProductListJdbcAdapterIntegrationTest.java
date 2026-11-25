@@ -121,6 +121,26 @@ class ProductListJdbcAdapterIntegrationTest extends CatalogIT {
     }
 
     @Test
+    @DisplayName("TC-CAT-02 Đã chọn size: số đếm của mỗi màu bằng số sản phẩm khi chọn thêm màu đó")
+    void findFacets_countColoursWithTheSizeInThatColour() {
+        setAvailable("COURTCLASSIC-01-42", false); // white sold out in 42, black still has it
+
+        ProductFacetsView facets =
+                adapter.findFacets(builder().sizes("42").build(), priceBands, NOW);
+
+        assertThat(facets.colors()).isNotEmpty();
+        for (FacetCount color : facets.colors()) {
+            assertThat(color.count())
+                    .as(color.value())
+                    .isEqualTo(
+                            count(
+                                    builder()
+                                            .sizes("42")
+                                            .colors(ColorFamily.valueOf(color.value()))));
+        }
+    }
+
+    @Test
     @DisplayName("TC-CAT-02 Mỗi số đếm bằng số sản phẩm khi chọn đúng giá trị đó")
     void findFacets_countWhatChoosingEachValueWouldShow() {
         Builder chosen = builder().genders(Gender.WOMEN).colors(ColorFamily.WHITE);

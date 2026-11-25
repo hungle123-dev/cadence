@@ -1,5 +1,7 @@
 package com.cadence.catalog.infrastructure.adapter;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -16,8 +18,8 @@ import com.cadence.catalog.application.port.driven.SitemapReadPort;
 import lombok.RequiredArgsConstructor;
 
 /**
- * Sitemap entries (NFR-SEO-04). A category is listed when it has a product on sale: an empty
- * category page has nothing to index. Its lastmod is that of its freshest product.
+ * Sitemap entries (NFR-SEO-04): every category, and the products on sale. A category's lastmod is
+ * that of its freshest product on sale; null when it has none yet.
  */
 @Component
 @RequiredArgsConstructor
@@ -37,18 +39,14 @@ public class SitemapJdbcAdapter implements SitemapReadPort {
                                 """
                                 SELECT c.slug, max(%s) AS updated_at
                                 FROM catalog.categories c
-                                JOIN catalog.products p ON p.category_id = c.id
-                                WHERE %s
+                                LEFT JOIN catalog.products p ON p.category_id = c.id AND %s
                                 GROUP BY c.id, c.slug, c.sort_order
                                 ORDER BY c.sort_order, c.slug
                                 """
                                         .formatted(UPDATED, CatalogSql.ON_SALE))
                         .param("now", at)
                         .query((rs, rowNum) ->
-                                new SitemapView.Entry(
-                                        rs.getString("slug"),
-                                        rs.getObject("updated_at", OffsetDateTime.class)
-                                                .toInstant()))
+                                new SitemapView.Entry(rs.getString("slug"), instant(rs)))
                         .list();
         List<SitemapView.Entry> products =
                 jdbc.sql(
@@ -67,5 +65,10 @@ public class SitemapJdbcAdapter implements SitemapReadPort {
                                                 .toInstant()))
                         .list();
         return new SitemapView(categories, products);
+    }
+
+    private static Instant instant(ResultSet rs) throws SQLException {
+        OffsetDateTime value = rs.getObject("updated_at", OffsetDateTime.class);
+        return value == null ? null : value.toInstant();
     }
 }

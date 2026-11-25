@@ -21,6 +21,17 @@ public record CatalogProperties(
 
     public CatalogProperties {
         priceBandBoundaries = List.copyOf(priceBandBoundaries);
+        // Fail at startup with the setting's name, not later with "max must be above min".
+        long previous = 0;
+        for (long boundary : priceBandBoundaries) {
+            if (boundary <= previous) {
+                throw new IllegalArgumentException(
+                        "cadence.catalog.price-band-boundaries must be positive and strictly"
+                                + " ascending, got "
+                                + priceBandBoundaries);
+            }
+            previous = boundary;
+        }
         if (!imageUrlTemplate.contains("{key}")) {
             throw new IllegalArgumentException(
                     "cadence.catalog.image-url-template must contain {key}");

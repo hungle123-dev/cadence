@@ -8,7 +8,8 @@ public interface SitemapReadPort {
 
     /**
      * Every category, and the products on sale at {@code now} (R-VIS in SQL, like the PLP). A
-     * product's updatedAt is the later of its last edit and its launch, so a launch shows as fresh.
+     * product's updatedAt is the later of its last edit and its launch, so a launch shows as fresh;
+     * a category's is that of its freshest product on sale, null when it has none.
      */
     SitemapView findSitemapEntries(Instant now);
 }

@@ -3,6 +3,8 @@ package com.cadence.catalog.infrastructure.restapi.uidto.response;
 import java.time.Instant;
 import java.util.List;
 
+import org.jspecify.annotations.Nullable;
+
 import com.cadence.catalog.application.dto.SitemapView;
 
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -29,5 +31,11 @@ public record SitemapResponse(List<EntryResponse> categories, List<EntryResponse
     @Schema(name = "SitemapEntry")
     public record EntryResponse(
             @Schema(example = "tempo-2") String slug,
-            @Schema(description = "Becomes <lastmod>") Instant updatedAt) {}
+            @Schema(
+                            description =
+                                    "Becomes <lastmod>; null for a category with no product on"
+                                            + " sale yet (leave <lastmod> out)",
+                            types = {"string", "null"},
+                            format = "date-time")
+                    @Nullable Instant updatedAt) {}
 }

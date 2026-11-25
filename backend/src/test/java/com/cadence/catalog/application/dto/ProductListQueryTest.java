@@ -43,6 +43,14 @@ class ProductListQueryTest {
     }
 
     @Test
+    void constructor_keepsEachFilterValueOnceInTheOrderSent() {
+        ProductListQuery query =
+                query(null, List.of(), List.of("3000000-", "0-1000000", "3000000-"), null, 1);
+
+        assertThat(query.prices()).containsExactly("3000000-", "0-1000000");
+    }
+
+    @Test
     void constructor_rejectsAnUnknownSizeFormat() {
         assertThatThrownBy(() ->
                         new ProductListQuery(
